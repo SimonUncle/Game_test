@@ -172,9 +172,20 @@ xvfb-run godot --path . tools/screenshot_phases.tscn
 
 ---
 
+## 이 프로젝트의 커스텀 스킬
+
+`.claude/skills/` 폴더에 3개 있음. **새 작업 시작 전 활용:**
+
+- `/tile-check c,r` — 타일 좌표를 build_village.py에 등록하기 전 시각 확인
+- `/village-rebuild` — build → import → validate → screenshot 풀 루프
+- `/reference-classify` — 사용자가 레퍼런스 이미지 줄 때 분류 + 한계 명시
+
+상세: [`docs/MCP_AND_SKILLS.md`](docs/MCP_AND_SKILLS.md)
+
 ## 참고 문서
 
 - 상세 작업 패턴: [`docs/CLAUDE_CODE_WORKFLOW.md`](docs/CLAUDE_CODE_WORKFLOW.md)
+- MCP/스킬 가이드: [`docs/MCP_AND_SKILLS.md`](docs/MCP_AND_SKILLS.md)
 - 사용자용 실행 가이드: [`HOW_TO_RUN.md`](HOW_TO_RUN.md)
 - 프로젝트 소개: [`README.md`](README.md)
 
