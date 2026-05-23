@@ -172,6 +172,21 @@ xvfb-run godot --path . tools/screenshot_phases.tscn
 
 ---
 
+## ⚠️ 다음 프로젝트는 — MCP 먼저 설치하고 시작
+
+이번 프로젝트는 환경 제약으로 다 손으로 했지만, 로컬 개발이라면 **무조건**:
+
+```bash
+# 1. Godot 직접 제어 (xvfb 해킹 + 수동 .tscn 편집 불필요)
+claude mcp add godot -- npx @coding-solo/godot-mcp
+
+# 2. (있으면) Aseprite MCP — 타일 좌표 추측 사라짐
+#    https://aseprite-mcp.abyo.net
+```
+
+이번 세션 노가다 80%는 이 두 MCP만 있어도 사라졌을 거예요.
+상세: [`docs/MCP_AND_SKILLS.md`](docs/MCP_AND_SKILLS.md)
+
 ## 이 프로젝트의 커스텀 스킬
 
 `.claude/skills/` 폴더에 3개 있음. **새 작업 시작 전 활용:**

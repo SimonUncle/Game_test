@@ -1,222 +1,206 @@
-# MCP·스킬·서브에이전트 활용 가이드
+# MCP·스킬 정직한 가이드
 
-> 이번 프로젝트에서 **실제 효과 있었던 것** vs **있었으면 좋았을 것** vs
-> **우리가 만든 커스텀** 을 정리합니다.
-
----
-
-## 0. 한 줄 요약
-
-- **이번 노가다의 가장 큰 시간 절약 도구는 "커스텀 스킬"** 이었을 것.
-- 시중 MCP들은 게임/시각 작업에 직접 도움 되는 게 거의 없음.
-- 슬래시 명령 `/init`, `/run`, `/verify`, `/code-review`는 어디서나 유용.
+> 이전 버전은 너무 일반론이었습니다. 이 문서는 **우리가 한 구체적인
+> 실수마다 어떤 MCP가 잡을 수 있었는지** 매핑합니다.
 
 ---
 
-## 1. 실제 효과 있었던 것
+## 0. 결론 먼저
 
-### Claude Code 내장 슬래시 명령
+이번 프로젝트 노가다의 **80%는 이미 존재하는 MCP들로 막을 수 있었어요.**
+구체적으로:
 
-| 명령 | 이번 프로젝트에서 효과 |
+- **Godot MCP** (`Coding-Solo/godot-mcp` 등): 우리가 한 xvfb 해킹 + 수동 .tscn 편집 → 불필요
+- **Aseprite MCP Pro**: 타일 좌표 추측 + 검은 외곽선 못 본 실수 → 차단
+- **PixelLab MCP**: 16×16으로 못 만든 디테일 → AI가 직접 생성
+
+다음 프로젝트는 **이 3개 설치부터 하고 시작하세요.**
+
+---
+
+## 1. 우리 실수 → 막아줬을 MCP 매핑
+
+| 라운드 | 실수 | 잡을 수 있었던 MCP | 어떻게 |
+|---|---|---|---|
+| v1 | xvfb 명령 직접 작성 + 스크린샷 폴더 헤매기 | **Godot MCP** | `run_project` 도구가 빌트인. 캡처도 한 명령 |
+| v2 | 잔디 타일 (12,16)의 1픽셀 검은 외곽선 못 발견 | **Aseprite MCP** | Aseprite에서 픽셀 단위 확대 + 색 분석. 검은 픽셀 1초에 발견 |
+| v3 | 집을 5×3로 잘라서 옆집 일부가 끼어들어감 | **Aseprite MCP** | 타일셋에 슬라이스 그리드 그어두면 4×3 즉시 보임 |
+| v4 | "부쉬" (12,11)이 사실 그루터기 | **Aseprite MCP** | 타일에 이름 라벨 가능. 또는 PixelLab에서 진짜 "bush" 생성 |
+| v5 | "꽃" (2,9)가 사실 당근 | **Aseprite MCP** | 같음. 또는 카테고리 검색 |
+| v6 | 손으로 .tscn 작성하다 collision shape 빠뜨림 | **Godot MCP** | `add_node`, `add_collision_shape` 도구로 직접 |
+| v7 | 캐릭터 4방향 워크 sheet 좌표 추측 | **Aseprite MCP** + **Godot MCP** | Aseprite로 export → Godot SpriteFrames.tres 자동 생성 |
+| v8 | 길 가장자리 직각 + 풀-길 경계 계단 | **PixelLab MCP** | Wang 타일셋 생성 — 경계 자동 처리 (계단 X) |
+| v9~v15 | 매번 build → import → screenshot 4명령 반복 | **Godot MCP** | `run_project` 한 명령. 또는 우리 `/village-rebuild` 스킬 |
+
+**모든 라운드의 핵심 시간 손실** = "Claude가 직접 Godot/Aseprite를 조작할 수 없어서 사람이 매개" 였음.
+
+---
+
+## 2. 실제 있는 MCP들 (2025년 5월 현재)
+
+### Godot MCP — 여러 구현체 중 선택
+
+| 구현 | 도구 수 | 특징 | 가격 |
+|---|---|---|---|
+| **[Coding-Solo/godot-mcp](https://github.com/Coding-Solo/godot-mcp)** | 기본 | 에디터 실행, 프로젝트 실행, 디버그 캡처, 씬 생성/노드 추가 | MIT 무료 |
+| **[hi-godot/godot-ai](https://github.com/hi-godot/godot-ai)** | 120+ | 라이브 에디터 연결, 씬·노드·스크립트·시그널·머티리얼 | 무료 |
+| **[tugcantopaloglu/godot-mcp](https://github.com/tugcantopaloglu/godot-mcp)** | 149 | 풀 엔진 제어. 네트워킹/3D/2D/UI/오디오/애니메이션 트리/물리/런타임 코드 실행 | 무료 |
+| **[youichi-uda/godot-mcp-pro](https://github.com/youichi-uda/godot-mcp-pro)** | 172 | 프로 버전, 시그널 자동 와이어링, 디버그 향상 | $15 1회 |
+
+설치 예 (Coding-Solo):
+```bash
+claude mcp add godot -- npx @coding-solo/godot-mcp
+```
+
+### Aseprite MCP Pro
+
+[**aseprite-mcp.abyo.net**](https://aseprite-mcp.abyo.net) — 픽셀아트 업계 표준 에디터 Aseprite를 Claude가 직접 제어.
+
+**121 도구** 포함:
+- 타일셋 슬라이싱 + 메타데이터 관리
+- 픽셀 단위 인스펙션 (검은 외곽선 같은 거 자동 검출)
+- 애니메이션 만들기
+- **Godot 형식으로 export**: SpriteFrames.tres, AnimationPlayer.tres, TileSet.tres
+
+가격: Aseprite 본체 $20 + MCP는 추정 무료 (확인 필요)
+
+### PixelLab MCP
+
+[**pixellab.ai/mcp**](https://pixellab.ai/mcp) — AI 픽셀아트 생성 (요청 시 캐릭터/타일셋/애니메이션 즉시 생성).
+
+특이 기능:
+- **Wang 타일셋 생성** — 경계 타일 자동 처리로 계단 없는 부드러운 전환
+- 캐릭터 4방향 워크 시트 한 번에
+- 자연어 → 픽셀아트
+
+가격: API 기반 (사용량 과금)
+
+---
+
+## 3. 다음 프로젝트 시작 시 — 30분 셋업
+
+```bash
+# 1. Godot MCP 설치 (무료)
+claude mcp add godot -- npx @coding-solo/godot-mcp
+
+# 2. Aseprite + Aseprite MCP 설치 ($20 + MCP 설정)
+#    https://www.aseprite.org/ + aseprite-mcp.abyo.net 가이드
+
+# 3. PixelLab MCP (선택 — AI 생성 필요할 때만)
+#    https://pixellab.ai/mcp 에서 API key
+
+# 4. 검증
+claude
+> /mcp     # 등록된 MCP 목록 확인
+> godot 실행해서 빈 프로젝트 만들어줘
+```
+
+설치 후 첫 명령:
+- "이 타일셋 분석하고 각 영역 자동 슬라이스해서 클래스 분류해줘"
+- "이 캐릭터 4방향 워크 애니메이션 만들고 Godot 씬으로 export"
+- "마을 배경에 시냇물 추가하되 Wang 타일로 자연스러운 경계로"
+
+**이번 프로젝트에서 우리가 손으로 다 한 것들 = 한 명령씩으로 끝남.**
+
+---
+
+## 4. 시중 MCP가 아직 못하는 것
+
+정직히, 이런 건 MCP로도 아직 어려움:
+
+| 한계 | 이유 | 우회 |
+|---|---|---|
+| **AI 페인팅 → 픽셀아트 완벽 변환** | 본질적으로 다른 매체 | 풀 페인팅 게임 → Unity/Unreal + 별도 일러스트레이터 |
+| **"이쁘게 만들어줘"** | 미적 기준 정량화 어려움 | 레퍼런스 + 구체적 평가 기준 합의 |
+| **에셋팩 발견 (itch.io 자연어 검색)** | 그런 MCP 아직 없음 | WebSearch + 사람 판단 |
+| **시각적 "느낌" 판단** | 사람만큼 정확히는 픽셀 차이 못 짚음 | 사용자 피드백 받는 게 빠름 |
+
+---
+
+## 5. 이 프로젝트 자체엔 적용 어려운 이유
+
+이번 세션에서 Godot MCP를 안 쓴 건 환경 제약 때문:
+- 컨테이너에 Godot 설치는 됐지만 GUI 없음
+- xvfb 가상 디스플레이로 우회
+- MCP 서버 따로 띄우는 셋업 안 됨
+
+**로컬 개발자라면 처음부터 Godot MCP 쓰는 게 정답.**
+
+---
+
+## 6. 다른 도메인은 어떤가
+
+게임 외 작업도 도메인 MCP가 있으면 천지차이:
+
+| 도메인 | 도움 되는 MCP |
 |---|---|
-| `/init` | 사용 안 했지만 첫날 썼으면 CLAUDE.md를 자동 생성받아 함정 회피 가능 |
-| `/run` | 게임 실행 자동화 — 우리는 직접 xvfb 명령 짰지만 표준 패턴이면 더 빨랐을 것 |
-| `/verify` | "이 수정이 실제로 작동해?" — 시각적 회귀 발견에 좋음 |
-| `/code-review` | 큰 변경 (v15 같은) 직전 자기 검토 |
-| `/ultrareview` | 마일스톤마다 멀티-에이전트 리뷰. 사용자 트리거 필요 |
+| **웹 개발** | Playwright MCP (E2E 테스트), Browser MCP |
+| **디자인** | Figma MCP, Sketch MCP |
+| **데이터** | DuckDB MCP, BigQuery MCP, Postgres MCP |
+| **DevOps** | Kubernetes MCP, Terraform MCP |
+| **문서** | Notion MCP, Confluence MCP |
+| **커뮤니케이션** | Slack MCP, Discord MCP |
+| **AI/ML** | Hugging Face MCP, Replicate MCP |
 
-### 서브에이전트 (Agent tool)
-
-`Explore` 서브에이전트를 적극적으로 썼다면 좋았던 순간:
-- 타일셋에서 잔디·길·집·꽃·돌 좌표 한 번에 다 찾기
-- 메인 컨텍스트 더럽히지 않고 결과만 리턴
-
-```
-Agent(subagent_type="Explore", 
-      description="Find all useful tile coords",
-      prompt="이 타일셋에서 (1) 단색 잔디 (2) 갈색 길 (3) 4×3 집들 
-              (4) 단일 부쉬 (5) 꽃 좌표를 각각 3개씩 후보로 찾아 
-              단독 미리보기 PNG 저장하고 좌표만 보고해줘")
-```
-
-이번에는 메인에서 다 했어서 컨텍스트 빨리 차고, 한 번에 못 봐서 시행착오 늘었음.
-
-### 백그라운드 실행 (run_in_background)
-
-게임 빌드/임포트는 백그라운드로 돌릴 수 있는데 우린 항상 동기로 기다림. 
-다음엔 임포트 백그라운드 돌리면서 다음 코드 짜는 식.
+각 도메인마다 "Claude가 직접 도구를 조작할 수 있느냐"가 노가다 결정.
 
 ---
 
-## 2. 도움 됐을 MCP (시중)
+## 7. 우리가 만든 커스텀 스킬 — 여전히 가치 있음
 
-### 직접 관련 있는 것
+Godot MCP가 있어도 **프로젝트별 함정**은 커스텀 스킬로 잡아야 함:
 
-| MCP | 어떤 상황에 |
+| 스킬 | Godot MCP가 있어도 필요한 이유 |
 |---|---|
-| **GitHub MCP** | PR/이슈/CI — 우리 이미 적극 사용 |
-| **Figma MCP** | UI 디자인이 Figma에 있으면 → 코드 자동 변환. **게임 아트엔 무관**. |
-| **Playwright MCP** | HTML5 export 빌드 검증 — 우리 안 함. 웹 배포할 거면 유용 |
+| `/tile-check` | 우리 타일셋의 특정 함정 좌표는 MCP가 모름. 프로젝트 메모리 |
+| `/village-rebuild` | 우리 프로젝트의 정확한 빌드 순서 (build_village.py → import → screenshot) |
+| `/reference-classify` | 프로젝트 외적인 판단 로직 (사용자 의도 분석) |
 
-### 우리 프로젝트와 무관
-
-대부분의 시중 MCP는 비즈니스 도구(Slack, Notion, DB) 통합용이라 
-게임/시각 작업엔 부적합.
-
-### 있으면 좋을 MCP (아직 없는 것)
-
-- **이미지 분석 MCP**: 픽셀 단위로 영역 색상/패턴 분석, 타일셋 자동 인덱싱
-- **에셋팩 검색 MCP**: itch.io/OpenGameArt에서 자연어 검색 → CC0 에셋 자동 다운로드
-- **게임엔진 컨트롤 MCP**: Godot/Unity 인스턴스 원격 제어 (씬 편집, 노드 추가)
+**즉**: MCP는 "도구 조작" 담당, 스킬은 "프로젝트 관례" 담당. 둘 다 필요.
 
 ---
 
-## 3. 우리 프로젝트 커스텀 스킬 (`.claude/skills/`)
+## 8. 학생들에게 권장 시작 키트
 
-이번 시행착오에서 만든, 같은 실수 반복 안 하기 위한 3개:
-
-### `/tile-check`
-**용도**: 타일 좌표 등록 전 시각 확인 강제  
-**막은 함정**:
-- "부쉬" (12,11)이 실은 그루터기
-- "꽃" (2,9)/(3,9)이 실은 당근
-- "해바라기" (3,16)이 실은 복숭아 아이콘
-
-```
-/tile-check 3,13
-/tile-check 12,16 13,16 14,16   # 후보 3개 비교
-/tile-check chunk:4,16,2,2       # 청크
-```
-
-### `/village-rebuild`
-**용도**: build → import → validate → screenshot 풀 루프 자동화  
-**막은 함정**: 4개 명령을 매번 직접 치다 보니 한 단계 빠뜨림
-
-### `/reference-classify`  
-**용도**: 사용자가 레퍼런스 이미지 줄 때 분류 + 한계 명시 강제  
-**막은 함정**: 4라운드 동안 AI 페인팅 따라잡으려고 헛수고
-
----
-
-## 4. 워크플로우에 어떻게 박는가
-
-### A. 매 세션 시작
-```
-1. CLAUDE.md 자동 로드 → 함정 표 + 검증된 좌표 기억남
-2. 작업 시작 전 ToolSearch로 필요한 deferred 도구 로드:
-   - WebFetch / WebSearch (에셋 검색)
-   - GitHub MCP 도구 (PR 작업)
-```
-
-### B. 새 시각 작업 받으면
-```
-1. /reference-classify  ← 레퍼런스 분류 + 한계 합의
-2. /tile-check  ← 좌표 후보 검증
-3. build_village.py 수정
-4. /village-rebuild  ← 전체 루프 자동
-5. 결과 확인 → OK면 커밋
-```
-
-### C. 막힐 때
-```
-1. /verify로 정말 작동하는지 명시 검증
-2. 진단 → 작은 수정 → /village-rebuild → 확인
-3. 1라운드 헛돌면 사용자 진단 요청 (이미지 + 빨간 동그라미)
-```
-
-### D. PR 만들 때
-```
-1. /code-review  ← 자기검토
-2. /ultrareview  ← (사용자 트리거) 멀티 에이전트 리뷰
-3. PR 본문에 visual diff 첨부 (전/후 스크린샷)
-```
-
----
-
-## 5. 슬래시 명령 자체 만들기
-
-스킬은 `.claude/skills/<name>.md` 파일로 정의하면 끝. 프론트매터에:
+게임 프로젝트 시작 시:
 
 ```yaml
----
-name: my-skill
-description: |
-  When to invoke (Claude reads this to decide if your skill matches)
-allowed-tools: Bash, Read, Edit   # 이 스킬이 호출 가능한 도구
----
+필수 (무료):
+  - Godot MCP (Coding-Solo 또는 hi-godot/godot-ai)
+  - GitHub MCP (PR/이슈)
+  - CLAUDE.md (프로젝트별 함정 메모)
+  - .claude/skills/ (반복 작업 자동화)
 
-# 내용 (Claude가 따를 지침)
+추천 (유료지만 가치 높음):
+  - Aseprite + Aseprite MCP Pro ($20 일회)
+  - 픽셀아트 에셋팩: Sprout Lands ($5), Cozy Farm ($25) 등
 
-1. 단계
-2. 단계
+선택 (필요 시):
+  - PixelLab MCP (캐릭터 즉시 생성 필요할 때)
+  - Playwright MCP (HTML5 빌드 검증)
 ```
 
-사용자가 `/my-skill <args>` 입력 시 Claude가 자동 호출.
+---
 
-**팁**: description은 "언제 이걸 쓸지" 명확히 쓰세요. Claude는 이걸 보고 매칭함.
+## 9. 정직한 결론
+
+이번 세션을 다시 한다면 — **Godot MCP + Aseprite MCP만 있어도** 똑같은 결과를
+**1/3 시간에** 만들었을 거예요. 우리가 했던:
+- xvfb로 스크린샷 → MCP 한 명령
+- 타일 좌표 추측·확인 반복 → Aseprite에서 직접
+- .tscn 손으로 작성 → MCP `add_node`
+- build→import→screenshot 4명령 → MCP `run_project`
+
+**노가다는 도구 부재의 증거입니다.** 
+
+같은 실수 2번째부터는 자동화하든 MCP 찾든 처리하세요. 학생들에겐 이 원칙을
+첫 시간에 가르치는 게 좋을 것 같습니다.
 
 ---
 
-## 6. 다른 프로젝트로 옮기는 법
+## 참고
 
-### 게임 프로젝트라면
-이 레포의 `.claude/skills/` 폴더를 통째로 복사 후:
-1. `tile-check`: 자기 프로젝트 타일셋 경로로 수정
-2. `village-rebuild`: 자기 빌드 명령으로 교체
-3. `reference-classify`: 그대로 사용 가능
-
-### 일반 코드 프로젝트라면
-다음 패턴이 어디서나 유용:
-- **검증 자동화 스킬**: 우리의 village-rebuild처럼 "변경→빌드→테스트→스샷" 한 방
-- **함정 표 스킬**: CLAUDE.md에 "절대 시도하지 말 것" 추가
-- **레퍼런스 분류 스킬**: 시각 작업이라면 거의 동일하게 적용 가능
-
----
-
-## 7. 솔직한 한계
-
-이번 프로젝트에서 **MCP/스킬로도 해결 안 된** 진짜 문제:
-
-1. **시각적 미세 판단**: "그림이 깨져 보인다" — Claude는 픽셀 단위 차이를 
-   사람만큼 정확히 짚지 못함. 결국 사용자 피드백 + 픽셀 확대 보기로 해결.
-2. **에셋 한계**: 16×16 chibi로 AI 페인팅 못 만듦 — 어떤 도구로도.
-3. **에셋팩 발견**: itch.io 자동 검색 MCP가 없어서 일일이 WebFetch로 시도.
-
-이런 부분은 도구가 발전하기 전까지 사람-AI 협업이 답.
-
----
-
-## 8. 추천 다음 단계
-
-이 프로젝트에 추가하면 좋을 거:
-
-```bash
-# 1. CLAUDE.md (이미 함)
-# 2. .claude/skills/  (이미 3개 만듦)
-# 3. .claude/settings.json — 도구 허용 목록 (permission prompt 줄임)
-```
-
-`.claude/settings.json`은 `/fewer-permission-prompts` 스킬로 자동 생성 가능:
-
-```bash
-claude
-> /fewer-permission-prompts
-```
-
-이번 세션에서 자주 호출한 Bash 명령(`python3 tools/build_village.py`, 
-`godot --headless ...`)을 자동 허용 목록에 추가하면 다음 세션에서 
-permission 팝업 사라짐.
-
----
-
-## 마치며
-
-| 핵심 | 이유 |
-|---|---|
-| **CLAUDE.md** | 매 세션 함정 기억 (자동 로드) |
-| **`.claude/skills/`** | 반복 작업 한 명령으로 (3개 만듦) |
-| **서브에이전트** | 긴 탐색은 위임해서 컨텍스트 절약 |
-| **`/init` `/verify` `/code-review`** | 어디서나 표준 패턴 |
-
-스킬 만드는 데 든 시간 < 같은 명령 10번 반복하는 시간.  
-**한 번 만들면 평생 씁니다.**
+- 검색해 본 Godot MCP 10여 개 — 가장 활발한 건 `tugcantopaloglu/godot-mcp` (149 도구)
+- 픽셀아트 도구 분야 MCP는 Aseprite MCP가 사실상 표준
+- PixelLab은 AI 생성 분야의 거의 유일한 옵션
+- 새 MCP는 매주 등장하므로 [mcpservers.org](https://mcpservers.org) 또는 [glama.ai/mcp](https://glama.ai/mcp) 주기적 확인 권장
