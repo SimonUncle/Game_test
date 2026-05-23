@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 """
-Compose a village PNG from the Sparklin Labs Ninja Adventure tileset (CC0).
+Compose the village PNG from the Sparklin Labs Ninja Adventure tileset (CC0).
 
-Tile coords were identified by overlaying a numbered grid on the tileset
-and visually picking which tile fits each role. They are NOT part of any
-formal spec — they're empirical for this specific sheet.
+Lessons from the previous pass:
+ - Houses in this tileset are 4 wide x 3 tall, not 5x3. Cropping 5x3
+   bled the start of the neighbor house in and made everything look
+   half-finished.
+ - Mixing multiple grass tile variants randomly makes the ground look
+   patchy. Stardew-style tilesets use ONE base grass with sparse
+   decoration sprites on top — we follow that here.
+ - Trees stamped with random sub-tile offsets create a noisy grid.
+   We keep them tile-aligned.
 """
 
 from __future__ import annotations
@@ -13,7 +19,7 @@ import os
 import random
 from PIL import Image
 
-random.seed(11)
+random.seed(13)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TILESET_PATH = os.path.join(ROOT, "assets", "sparklin", "ninja_tileset.png")
@@ -33,28 +39,23 @@ def chunk(col: int, row: int, w: int, h: int) -> Image.Image:
     return tileset.crop((x, y, x + w * TILE, y + h * TILE))
 
 
-# Identified coordinates ----------------------------------------------------
-GRASS_TILES = [(11, 16), (12, 16), (13, 16)]
-DIRT_TILE = (21, 16)
-WATER_TILE = (20, 8)
+# Verified after grid inspection -------------------------------------------
+GRASS_BASE = (12, 16)           # ONE consistent grass tile
+DIRT       = (21, 16)
+WATER      = (20, 8)
 
 HOUSES = [
-    chunk(0,  0, 5, 3),    # orange roof, big
-    chunk(5,  0, 5, 3),    # light roof, big
-    chunk(10, 0, 5, 3),    # orange roof variant
-    chunk(15, 0, 5, 3),    # red brick roof, big
+    chunk(0,  0, 4, 3),         # 64x48  orange roof, 3 openings
+    chunk(4,  0, 4, 3),         # beige roof, 1 door
+    chunk(8,  0, 4, 3),         # orange roof variant
+    chunk(12, 0, 4, 3),         # red brick pagoda
 ]
 
-TREES = [
-    chunk(4,  10, 2, 2),   # round leafy
-    chunk(8,  10, 2, 2),   # darker round
-    chunk(4,  10, 2, 2),
-    chunk(8,  10, 2, 2),
-]
+TREE_ROUND = chunk(4, 10, 2, 2)
+TREE_DARK  = chunk(8, 10, 2, 2)
+TREES = [TREE_ROUND, TREE_DARK]
 
-BUSH_TILE  = tile(12, 11)
-ROCK_TILE  = tile(14, 10)
-FLOWER_TILES = [tile(2, 9), tile(3, 9)]
+BUSH       = tile(3, 13)        # small green bush on dirt patch
 
 
 def stamp(canvas: Image.Image, img: Image.Image, x_px: int, y_px: int) -> None:
@@ -62,57 +63,59 @@ def stamp(canvas: Image.Image, img: Image.Image, x_px: int, y_px: int) -> None:
 
 
 def main() -> None:
-    cols, rows = 80, 48      # 1280x768 world
+    cols, rows = 80, 48
     W, H = cols * TILE, rows * TILE
-
-    bg = Image.new("RGBA", (W, H), (90, 140, 70, 255))
-
-    grass = [tile(*t) for t in GRASS_TILES]
-    dirt = tile(*DIRT_TILE)
-    water = tile(*WATER_TILE)
-
-    # base grass
-    for ty in range(rows):
-        for tx in range(cols):
-            bg.paste(random.choice(grass), (tx * TILE, ty * TILE))
-
-    # water river on the far left (3-4 tiles wide, wavy)
-    for ty in range(rows):
-        width = 3 + (1 if ty % 5 == 0 else 0)
-        for tx in range(width):
-            bg.paste(water, (tx * TILE, ty * TILE))
-
-    # cross-shaped dirt paths centered in the playable area
     cx, cy = cols // 2, rows // 2
 
+    bg = Image.new("RGBA", (W, H), (90, 140, 70, 255))
+    grass = tile(*GRASS_BASE)
+    dirt = tile(*DIRT)
+    water = tile(*WATER)
+
+    # 1) Single grass base everywhere
+    for ty in range(rows):
+        for tx in range(cols):
+            bg.paste(grass, (tx * TILE, ty * TILE))
+
+    # 2) River on the far left (3 tiles wide)
+    for ty in range(rows):
+        for tx in range(3):
+            bg.paste(water, (tx * TILE, ty * TILE))
+
+    # 3) Cross dirt paths
     def on_path(tx: int, ty: int) -> bool:
+        if tx < 3:
+            return False
         if abs(tx - cx) <= 2:
             return True
-        if abs(ty - cy) <= 2 and tx >= 5:
+        if abs(ty - cy) <= 2 and tx >= 3:
             return True
         return False
 
     for ty in range(rows):
         for tx in range(cols):
-            if tx < 5:
-                continue
             if on_path(tx, ty):
                 bg.paste(dirt, (tx * TILE, ty * TILE))
 
-    # houses in the 4 quadrants (tile-coords of top-left)
+    # 4) Houses (tile coords of top-left). With doorstep dirt in front.
     placements = [
-        (HOUSES[0], 10, 8),
-        (HOUSES[1], 22, 6),
-        (HOUSES[2], 50, 7),
-        (HOUSES[3], 64, 9),
-        (HOUSES[3], 10, 28),
-        (HOUSES[1], 26, 30),
-        (HOUSES[0], 50, 28),
-        (HOUSES[2], 65, 30),
+        (HOUSES[0], 8,  8),
+        (HOUSES[1], 18, 7),
+        (HOUSES[2], 48, 7),
+        (HOUSES[3], 64, 8),
+        (HOUSES[3], 8,  28),
+        (HOUSES[0], 18, 30),
+        (HOUSES[1], 48, 28),
+        (HOUSES[2], 64, 30),
     ]
     house_rects = []
     for (img, tx, ty) in placements:
         px, py = tx * TILE, ty * TILE
+        # doorstep: a single dirt tile right under the door
+        door_tx = tx + img.size[0] // TILE // 2
+        door_ty = ty + img.size[1] // TILE
+        bg.paste(dirt, (door_tx * TILE, door_ty * TILE))
+        # then the house on top
         stamp(bg, img, px, py)
         house_rects.append((px, py, img.size[0], img.size[1]))
 
@@ -122,41 +125,61 @@ def main() -> None:
                 return True
         return False
 
-    # forest: dense lush border (3 rings deep), some interior clumps
-    border_depth = 4
-    for ty in range(rows):
-        for tx in range(cols):
-            if tx < 5 or on_path(tx, ty):
-                continue
-            dist_from_edge = min(ty, rows - 1 - ty, cols - 1 - tx)
-            if dist_from_edge < border_depth:
-                density = 0.90 - (dist_from_edge * 0.18)
-            else:
-                density = 0.05
-            if random.random() < density:
-                tree = random.choice(TREES)
-                px = tx * TILE + random.randint(-4, 4)
-                py = ty * TILE - TILE + random.randint(-2, 2)
-                if not overlaps_house(px, py, *tree.size):
-                    stamp(bg, tree, max(0, px), max(0, py))
+    def near_path(tx: int, ty: int) -> bool:
+        for ddy in range(-1, 2):
+            for ddx in range(-1, 2):
+                if on_path(tx + ddx, ty + ddy):
+                    return True
+        return False
 
-    # bushes / rocks / flowers scattered in grass
-    for _ in range(280):
-        tx = random.randint(6, cols - 4)
-        ty = random.randint(3, rows - 3)
-        if on_path(tx, ty):
+    # 5) Forest border — dense 4-tile-deep ring of trees, tile-aligned.
+    # We sample on a coarser grid (every 2 tiles) so trees don't overlap
+    # awkwardly. Each tree is 2x2 tiles centered on the sample point.
+    occupied = set()  # (tx, ty) cells where a tree already sits
+
+    def place_tree(tx: int, ty: int) -> bool:
+        if on_path(tx, ty) or near_path(tx, ty):
+            return False
+        if overlaps_house(tx * TILE, ty * TILE, 32, 32):
+            return False
+        for ddy in range(2):
+            for ddx in range(2):
+                if (tx + ddx, ty + ddy) in occupied:
+                    return False
+        tree = random.choice(TREES)
+        stamp(bg, tree, tx * TILE, ty * TILE - TILE)
+        for ddy in range(2):
+            for ddx in range(2):
+                occupied.add((tx + ddx, ty + ddy))
+        return True
+
+    # Outer ring (dense)
+    for ty in range(0, rows, 2):
+        for tx in range(3, cols, 2):
+            depth = min(ty, rows - 1 - ty, cols - 1 - tx)
+            if depth < 4:
+                if random.random() < 0.95:
+                    place_tree(tx, ty)
+            elif depth < 6 and random.random() < 0.35:
+                place_tree(tx, ty)
+
+    # Interior accent trees (very sparse)
+    for _ in range(18):
+        tx = random.randint(6, cols - 6)
+        ty = random.randint(6, rows - 6)
+        place_tree(tx, ty)
+
+    # 6) Sparse bushes in grass for visual interest. Avoid overcrowding —
+    # the original reference is mostly clean grass with a few accents.
+    for _ in range(50):
+        tx = random.randint(4, cols - 3)
+        ty = random.randint(2, rows - 3)
+        if on_path(tx, ty) or (tx, ty) in occupied:
             continue
-        px = tx * TILE + random.randint(0, 6)
-        py = ty * TILE + random.randint(0, 6)
+        px, py = tx * TILE, ty * TILE
         if overlaps_house(px, py):
             continue
-        r = random.random()
-        if r < 0.45:
-            stamp(bg, BUSH_TILE, px, py)
-        elif r < 0.65:
-            stamp(bg, ROCK_TILE, px, py)
-        else:
-            stamp(bg, random.choice(FLOWER_TILES), px, py)
+        stamp(bg, BUSH, px, py)
 
     bg.save(OUT_PATH)
     print(f"wrote {OUT_PATH}  size={bg.size}")
