@@ -1,0 +1,67 @@
+[gd_scene load_steps=10 format=3 uid="uid://b1mainsc000001"]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="PackedScene" uid="uid://b1pl4y3rmoon" path="res://scenes/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" uid="uid://b1topnv00001" path="res://scenes/ui/top_nav.tscn" id="3_topnav"]
+[ext_resource type="PackedScene" uid="uid://b1pmdrpnl0001" path="res://scenes/ui/pomodoro_panel.tscn" id="4_pomo"]
+[ext_resource type="PackedScene" uid="uid://b1dtpnl000001" path="res://scenes/ui/date_panel.tscn" id="5_date"]
+[ext_resource type="PackedScene" uid="uid://b1tdpnl000001" path="res://scenes/ui/todo_panel.tscn" id="6_todo"]
+[ext_resource type="PackedScene" uid="uid://b1ntpnl000001" path="res://scenes/ui/notification_panel.tscn" id="7_notif"]
+[ext_resource type="PackedScene" uid="uid://b1chmkr000001" path="res://scenes/ui/chief_house_marker.tscn" id="8_chief"]
+
+[sub_resource type="RectangleShape2D" id="RS_world"]
+size = Vector2(1920, 1080)
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="World" type="Node2D" parent="."]
+
+[node name="Background" type="ColorRect" parent="World"]
+offset_right = 1920.0
+offset_bottom = 1080.0
+color = Color(0.18, 0.36, 0.22, 1)
+
+[node name="Camera2D" type="Camera2D" parent="World"]
+position = Vector2(960, 540)
+
+[node name="WorldBounds" type="StaticBody2D" parent="World"]
+position = Vector2(960, 540)
+collision_layer = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="World/WorldBounds"]
+shape = SubResource("RS_world")
+disabled = true
+
+[node name="Player" parent="World" instance=ExtResource("2_player")]
+position = Vector2(960, 600)
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="TopNav" parent="UILayer" instance=ExtResource("3_topnav")]
+
+[node name="PomodoroPanel" parent="UILayer" instance=ExtResource("4_pomo")]
+
+[node name="DatePanel" parent="UILayer" instance=ExtResource("5_date")]
+
+[node name="TodoPanel" parent="UILayer" instance=ExtResource("6_todo")]
+
+[node name="NotificationPanel" parent="UILayer" instance=ExtResource("7_notif")]
+
+[node name="ChiefHouseMarker" parent="UILayer" instance=ExtResource("8_chief")]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -60.0
+offset_top = -80.0
+offset_right = 60.0
+offset_bottom = 80.0
+
+[node name="InfoDialog" type="AcceptDialog" parent="UILayer"]
+title = "info"
+initial_position = 2
+size = Vector2i(420, 160)
+ok_button_text = "확인"
+dialog_text = "..."

@@ -1,0 +1,66 @@
+[gd_scene load_steps=4 format=3 uid="uid://b1chmkr000001"]
+
+[ext_resource type="Script" path="res://scripts/ui/chief_house_marker.gd" id="1_chief"]
+
+[sub_resource type="StyleBoxFlat" id="SBF_card"]
+bg_color = Color(0.36, 0.22, 0.13, 0.96)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="SBF_initials"]
+bg_color = Color(0.13, 0.13, 0.13, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[node name="ChiefHouseMarker" type="Control"]
+custom_minimum_size = Vector2(120, 160)
+mouse_filter = 2
+script = ExtResource("1_chief")
+
+[node name="Card" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("SBF_card")
+
+[node name="Margin" type="MarginContainer" parent="Card"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="V" type="VBoxContainer" parent="Card/Margin"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="InitialsCard" type="PanelContainer" parent="Card/Margin/V"]
+layout_mode = 2
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(64, 64)
+theme_override_styles/panel = SubResource("SBF_initials")
+
+[node name="Initials" type="Label" parent="Card/Margin/V/InitialsCard"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "EJ"
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_colors/font_color = Color(0.95, 0.92, 0.82, 1)
+theme_override_font_sizes/font_size = 28
+
+[node name="Name" type="Label" parent="Card/Margin/V"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "CHIEF HOUSE"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.95, 0.92, 0.82, 1)
+theme_override_font_sizes/font_size = 14

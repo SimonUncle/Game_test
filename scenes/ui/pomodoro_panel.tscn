@@ -1,0 +1,78 @@
+[gd_scene load_steps=3 format=3 uid="uid://b1pmdrpnl0001"]
+
+[ext_resource type="Script" path="res://scripts/ui/pomodoro_panel.gd" id="1_pomo"]
+
+[sub_resource type="StyleBoxFlat" id="SBF_pomo"]
+bg_color = Color(0.07, 0.1, 0.13, 0.78)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="PomodoroPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(360, 0)
+anchors_preset = 1
+anchor_left = 0.0
+anchor_top = 0.0
+offset_left = 24.0
+offset_top = 80.0
+offset_right = 24.0
+offset_bottom = 80.0
+grow_horizontal = 1
+grow_vertical = 1
+theme_override_styles/panel = SubResource("SBF_pomo")
+script = ExtResource("1_pomo")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="V" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="IconRow" type="HBoxContainer" parent="Margin/V"]
+layout_mode = 2
+
+[node name="Icon" type="Label" parent="Margin/V/IconRow"]
+layout_mode = 2
+text = "☀"
+theme_override_font_sizes/font_size = 28
+
+[node name="TimeLabel" type="Label" parent="Margin/V"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "25:00"
+theme_override_font_sizes/font_size = 64
+theme_override_colors/font_color = Color(0.98, 0.94, 0.82, 1)
+
+[node name="PhaseLabel" type="Label" parent="Margin/V"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "<<  FOCUS TIME  >>"
+theme_override_colors/font_color = Color(0.85, 0.82, 0.7, 1)
+theme_override_font_sizes/font_size = 14
+
+[node name="CyclesLabel" type="Label" parent="Margin/V"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "0 CYCLES"
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="ButtonRow" type="HBoxContainer" parent="Margin/V"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="StartButton" type="Button" parent="Margin/V/ButtonRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "▶ START"
+
+[node name="ResetButton" type="Button" parent="Margin/V/ButtonRow"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "↻ RESET"

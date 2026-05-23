@@ -1,0 +1,103 @@
+[gd_scene load_steps=3 format=3 uid="uid://b1ntpnl000001"]
+
+[ext_resource type="Script" path="res://scripts/ui/notification_panel.gd" id="1_notif"]
+
+[sub_resource type="StyleBoxFlat" id="SBF_notif"]
+bg_color = Color(0.07, 0.1, 0.13, 0.92)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.24, 0.32, 1)
+
+[node name="NotificationPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(360, 0)
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -384.0
+offset_top = -160.0
+offset_right = -24.0
+offset_bottom = -24.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_styles/panel = SubResource("SBF_notif")
+script = ExtResource("1_notif")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="V" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Header" type="HBoxContainer" parent="Margin/V"]
+layout_mode = 2
+
+[node name="Bell" type="Label" parent="Margin/V/Header"]
+layout_mode = 2
+text = "🔔"
+
+[node name="HeaderLabel" type="Label" parent="Margin/V/Header"]
+layout_mode = 2
+text = "알림"
+theme_override_colors/font_color = Color(0.9, 0.9, 0.86, 1)
+
+[node name="Spacer" type="Control" parent="Margin/V/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Close" type="Button" parent="Margin/V/Header"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "✕"
+flat = true
+
+[node name="Title" type="Label" parent="Margin/V"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "오늘도 힘내세요!"
+theme_override_colors/font_color = Color(0.98, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 16
+
+[node name="Body" type="Label" parent="Margin/V"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "하나씩 해나가면 돼요. 몽글마을이 응원합니다."
+theme_override_colors/font_color = Color(0.86, 0.84, 0.78, 1)
+autowrap_mode = 2
+
+[node name="Footer" type="HBoxContainer" parent="Margin/V"]
+layout_mode = 2
+
+[node name="Sender" type="Label" parent="Margin/V/Footer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "몽글마을 주민회"
+theme_override_colors/font_color = Color(0.55, 0.55, 0.55, 1)
+theme_override_font_sizes/font_size = 11
+
+[node name="Spacer2" type="Control" parent="Margin/V/Footer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TimeAgo" type="Label" parent="Margin/V/Footer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "방금 전"
+theme_override_colors/font_color = Color(0.55, 0.55, 0.55, 1)
+theme_override_font_sizes/font_size = 11
+
+[node name="HideTimer" type="Timer" parent="."]
+wait_time = 6.0
+one_shot = true
