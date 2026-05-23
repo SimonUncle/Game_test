@@ -84,6 +84,66 @@ def random_flip(img: Image.Image) -> Image.Image:
     return img
 
 
+def random_hflip(img: Image.Image) -> Image.Image:
+    """Horizontal flip only — used for objects that have an "up" direction
+    (houses, trees, bushes) so they don't end up upside-down."""
+    if random.random() < 0.5:
+        img = img.transpose(Image.FLIP_LEFT_RIGHT)
+    return img
+
+
+def feather_path_edges(canvas: Image.Image, path_cells: set,
+                       cols: int, rows: int) -> None:
+    """For each grass cell adjacent to a path cell, paint a soft brown haze
+    so the dirt visually 'creeps' into the grass instead of stopping at a
+    knife-sharp grid line. Done as a single feathered PIL layer that's
+    blurred and then composited on the canvas."""
+    layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    for (tx, ty) in path_cells:
+        for ddx, ddy in [(-1, 0), (1, 0), (0, -1), (0, 1),
+                         (-1, -1), (1, 1), (-1, 1), (1, -1)]:
+            nx, ny = tx + ddx, ty + ddy
+            if (nx, ny) in path_cells:
+                continue
+            if 3 <= nx < cols and 0 <= ny < rows:
+                # Brown halo blob, alpha varies a bit per cell
+                a = 55 + random.randint(-15, 15)
+                d.ellipse(
+                    [nx * TILE - 3, ny * TILE - 3,
+                     nx * TILE + TILE + 3, ny * TILE + TILE + 3],
+                    fill=(120, 85, 50, a),
+                )
+    layer = layer.filter(ImageFilter.GaussianBlur(radius=3.5))
+    canvas.alpha_composite(layer)
+
+
+def darken_path_edges(canvas: Image.Image, path_cells: set) -> None:
+    """Slight per-tile brightness variation on dirt tiles + darker shadow
+    on outermost path cells so the path has 'worn center, shaded edges'."""
+    layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    for (tx, ty) in path_cells:
+        on_edge = any(
+            (tx + ddx, ty + ddy) not in path_cells
+            for ddx, ddy in [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        )
+        if on_edge:
+            a = 50 + random.randint(-10, 10)
+            d.rectangle(
+                [tx * TILE, ty * TILE, tx * TILE + TILE, ty * TILE + TILE],
+                fill=(40, 25, 15, a),
+            )
+        elif random.random() < 0.18:
+            # occasional lighter "sun-bleached" center tile
+            d.rectangle(
+                [tx * TILE, ty * TILE, tx * TILE + TILE, ty * TILE + TILE],
+                fill=(255, 230, 180, 25),
+            )
+    layer = layer.filter(ImageFilter.GaussianBlur(radius=1.2))
+    canvas.alpha_composite(layer)
+
+
 def draw_shadow(canvas: Image.Image, cx: int, cy: int, rx: int, ry: int,
                 alpha: int = 90, blur: float = 1.5) -> None:
     pad = 6
@@ -158,18 +218,20 @@ def main() -> None:
         if 3 <= tx < cols and 0 <= ty < rows:
             path_cells.add((tx, ty))
 
-    # Vertical strip
+    # Vertical strip — bigger wobble, variable width
     for ty in range(rows):
-        offset = int(2 * math.sin(ty / 6.0)) + int(1.5 * math.cos(ty / 14.0))
+        offset = int(3.5 * math.sin(ty / 5.0)) + int(2 * math.cos(ty / 11.0))
         center = cx + offset
-        for dx in range(-PATH_HALF, PATH_HALF + 1):
+        half = PATH_HALF + (1 if (ty % 7 == 0) else 0)
+        for dx in range(-half, half + 1):
             add_path_cell(center + dx, ty)
 
     # Horizontal strip
     for tx in range(3, cols):
-        offset = int(2 * math.sin(tx / 8.0)) + int(1.5 * math.cos(tx / 17.0))
+        offset = int(3.5 * math.sin(tx / 7.0)) + int(2 * math.cos(tx / 13.0))
         center = cy + offset
-        for dy in range(-PATH_HALF, PATH_HALF + 1):
+        half = PATH_HALF + (1 if (tx % 8 == 0) else 0)
+        for dy in range(-half, half + 1):
             add_path_cell(tx, center + dy)
 
     # Stamp path
@@ -194,9 +256,14 @@ def main() -> None:
             if ncell not in path_cells:
                 edge_cells.append(ncell)
     for (tx, ty) in edge_cells:
-        if 3 <= tx < cols and 0 <= ty < rows and random.random() < 0.18:
+        if 3 <= tx < cols and 0 <= ty < rows and random.random() < 0.22:
             bg.paste(random_flip(dirt), (tx * TILE, ty * TILE))
             path_cells.add((tx, ty))
+
+    # Path tonal shading — darker edges, occasional bright center
+    darken_path_edges(bg, path_cells)
+    # Brown haze blending path into grass (the "no hard cut" effect)
+    feather_path_edges(bg, path_cells, cols, rows)
 
     # 4) Houses with AO patch + drop shadow + doorstep.
     placements = [
@@ -235,7 +302,7 @@ def main() -> None:
         darken_grass_patch(bg, ao_cx + 2, ao_cy, img.size[0] // 2 + 6, 10)
         # drop shadow (offset right for sun from upper-left)
         draw_shadow(bg, ao_cx + 6, ao_cy, img.size[0] // 2, 6, alpha=120, blur=2.0)
-        stamp(bg, img, px, py)
+        stamp(bg, random_hflip(img), px, py)
         house_rects.append((px, py, img.size[0], img.size[1]))
         for ddy in range(img.size[1] // TILE):
             for ddx in range(img.size[0] // TILE):
@@ -267,7 +334,7 @@ def main() -> None:
         darken_grass_patch(bg, trunk_x + 1, trunk_y, tree.size[0] // 2 + 2, 6)
         draw_shadow(bg, trunk_x + 3, trunk_y, tree.size[0] // 2 - 1, 4,
                     alpha=110, blur=1.8)
-        stamp(bg, tree, tx * TILE, ty * TILE - TILE)
+        stamp(bg, random_hflip(tree), tx * TILE, ty * TILE - TILE)
         cw, ch = tree.size[0] // TILE, tree.size[1] // TILE
         for ddy in range(ch + 1):
             for ddx in range(cw):
