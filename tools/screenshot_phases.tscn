@@ -1,0 +1,32 @@
+[gd_scene load_steps=3 format=3 uid="uid://b1phasecap0001"]
+
+[ext_resource type="PackedScene" uid="uid://b1mainsc000001" path="res://scenes/main.tscn" id="1_main"]
+
+[sub_resource type="GDScript" id="1_capture"]
+script/source = "extends Node
+
+const PHASE_TIMES := [3.0, 25.0, 47.0, 70.0]
+const PHASE_NAMES := [\"dawn\", \"noon\", \"dusk\", \"night\"]
+
+var _idx := 0
+var _elapsed := 0.0
+
+
+func _process(delta: float) -> void:
+	_elapsed += delta
+	if _idx < PHASE_TIMES.size() and _elapsed >= PHASE_TIMES[_idx]:
+		var img := get_viewport().get_texture().get_image()
+		var path := \"user://phase_%s.png\" % PHASE_NAMES[_idx]
+		img.save_png(path)
+		print(\"Saved \", path, \" at t=\", _elapsed)
+		_idx += 1
+		if _idx >= PHASE_TIMES.size():
+			get_tree().quit()
+"
+
+[node name="PhaseCapture" type="Node"]
+
+[node name="Main" parent="." instance=ExtResource("1_main")]
+
+[node name="Capturer" type="Node" parent="."]
+script = SubResource("1_capture")

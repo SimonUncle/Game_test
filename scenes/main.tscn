@@ -12,6 +12,7 @@
 [ext_resource type="PackedScene" uid="uid://b1intrznabcd1" path="res://scenes/interaction_zone.tscn" id="10_iz"]
 [ext_resource type="PackedScene" uid="uid://b1dlgbox00001" path="res://scenes/ui/dialogue_box.tscn" id="11_dlg"]
 [ext_resource type="Texture2D" path="res://assets/sprites/village_background.png" id="12_bg"]
+[ext_resource type="Script" path="res://scripts/day_cycle.gd" id="13_daycycle"]
 
 [sub_resource type="RectangleShape2D" id="RS_house"]
 size = Vector2(72, 28)
@@ -21,6 +22,10 @@ size = Vector2(20, 768)
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
+
+[node name="DayCycle" type="CanvasModulate" parent="."]
+script = ExtResource("13_daycycle")
+cycle_duration = 90.0
 
 [node name="World" type="Node2D" parent="."]
 
