@@ -67,6 +67,9 @@ BUSH_SM    = tile(3, 13)
 BUSH_BIG   = tile(9, 15)
 GRASS_TUFT = tile(4, 15)
 SUNFLOWER  = tile(3, 15)
+STONE_BIG  = chunk(14, 11, 2, 2)
+STONE_SM   = tile(13, 11)
+FENCE_H    = chunk(5, 4, 3, 2)       # horizontal fence segment
 
 
 def stamp(canvas: Image.Image, img: Image.Image, x_px: int, y_px: int) -> None:
@@ -113,17 +116,36 @@ def main() -> None:
     dirt = tile(*DIRT)
     water = tile(*WATER)
 
-    # 1) Grass base with random flips per tile to break tiling repeats.
-    # Mostly the plain clean grass, with sparse yellow-dappled variant.
+    # 1) Grass base: blend plain + dappled grass in soft Perlin-ish patches
+    # so the field has tonal variation instead of one flat green.
+    # Cheap "patch" generator: blob centers, anything within radius uses alt.
+    alt_centers = [(random.randint(3, cols - 1), random.randint(0, rows - 1))
+                   for _ in range(28)]
     for ty in range(rows):
         for tx in range(cols):
-            base = grass_alt if random.random() < 0.08 else grass
+            # alt if inside any patch, otherwise plain
+            in_patch = False
+            for (acx, acy) in alt_centers:
+                dx = tx - acx
+                dy = ty - acy
+                if dx * dx + dy * dy < 9:        # radius ~3
+                    in_patch = True
+                    break
+            base = grass_alt if in_patch and random.random() < 0.65 else grass
             bg.paste(random_flip(base), (tx * TILE, ty * TILE))
 
-    # 2) River on left, also flip per-tile for variation
+    # 2) River on left + rocky bank where it meets grass.
     for ty in range(rows):
         for tx in range(3):
             bg.paste(random_flip(water), (tx * TILE, ty * TILE))
+    # Pebbles scattered along the east bank (column 3 + occasional col 4)
+    for ty in range(rows):
+        if random.random() < 0.55:
+            stamp(bg, STONE_SM, 3 * TILE - random.randint(2, 6),
+                  ty * TILE + random.randint(0, 4))
+        if random.random() < 0.18:
+            stamp(bg, STONE_SM, 4 * TILE + random.randint(-2, 4),
+                  ty * TILE + random.randint(0, 4))
 
     # 3) Winding paths instead of a rigid cross.
     # Vertical path: center column cx with a slow sine deviation.
@@ -291,10 +313,44 @@ def main() -> None:
                 stamp(bg, SUNFLOWER, px, py)
                 occupied.add((tx, ty))
                 decor += 1
-            # Grass tufts placed in clusters near other tufts/decor only,
-            # so they form patches instead of stripes across the whole field.
             elif roll < 0.10:
                 stamp(bg, GRASS_TUFT, px, py)
+
+    # 7) Scattered boulders in clearings (1-2 per quadrant)
+    for _ in range(8):
+        tx = random.randint(6, cols - 6)
+        ty = random.randint(4, rows - 5)
+        if on_path(tx, ty) or near_path(tx, ty, 1) or (tx, ty) in occupied:
+            continue
+        if overlaps_house(tx * TILE, ty * TILE, 32, 32):
+            continue
+        px, py = tx * TILE, ty * TILE
+        darken_grass_patch(bg, px + TILE, py + TILE * 2 - 2, TILE - 2, 4)
+        draw_shadow(bg, px + TILE + 3, py + TILE * 2 - 2, TILE - 4, 3,
+                    alpha=110, blur=1.5)
+        stamp(bg, STONE_BIG, px, py)
+        for ddy in range(2):
+            for ddx in range(2):
+                occupied.add((tx + ddx, ty + ddy))
+
+    # 8) Horizontal fence runs along some house frontages (between house and path)
+    for (hx, hy, hw, hh) in house_rects[:4]:
+        # Try to place a 3-wide fence in front of the house, between house and
+        # the nearest path tile, only if there's clear grass space.
+        ftx = hx // TILE + 1            # slight indent from house left
+        fty = hy // TILE + (hh // TILE) + 1
+        if 3 <= ftx < cols - 3 and 0 <= fty < rows:
+            blocked = False
+            for dx in range(3):
+                if (ftx + dx, fty) in path_cells or (ftx + dx, fty) in occupied:
+                    blocked = True
+                    break
+            if not blocked:
+                draw_shadow(bg, ftx * TILE + 24, fty * TILE + 28, 22, 3, alpha=80)
+                stamp(bg, FENCE_H, ftx * TILE, fty * TILE)
+                for dx in range(3):
+                    for dy in range(2):
+                        occupied.add((ftx + dx, fty + dy))
 
     bg.save(OUT_PATH)
     print(f"wrote {OUT_PATH}  size={bg.size}  decor={decor}")
