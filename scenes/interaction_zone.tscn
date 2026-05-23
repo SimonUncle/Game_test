@@ -1,0 +1,25 @@
+[gd_scene load_steps=3 format=3 uid="uid://b1intrznabcd1"]
+
+[ext_resource type="Script" path="res://scripts/interaction_zone.gd" id="1_iz"]
+
+[sub_resource type="RectangleShape2D" id="RS_iz"]
+size = Vector2(80, 40)
+
+[node name="InteractionZone" type="Area2D"]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("1_iz")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RS_iz")
+
+[node name="HintLabel" type="Label" parent="."]
+offset_left = -28.0
+offset_top = -48.0
+offset_right = 28.0
+offset_bottom = -28.0
+text = "[SPACE]"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 1, 0.7, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4

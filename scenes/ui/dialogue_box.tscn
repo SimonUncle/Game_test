@@ -1,0 +1,63 @@
+[gd_scene load_steps=3 format=3 uid="uid://b1dlgbox00001"]
+
+[ext_resource type="Script" path="res://scripts/ui/dialogue_box.gd" id="1_dlg"]
+
+[sub_resource type="StyleBoxFlat" id="SBF_dlg"]
+bg_color = Color(0.07, 0.1, 0.13, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.85, 0.7, 0.35, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="DialogueBox" type="PanelContainer"]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -360.0
+offset_top = -200.0
+offset_right = 360.0
+offset_bottom = -40.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_styles/panel = SubResource("SBF_dlg")
+script = ExtResource("1_dlg")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="V" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="DialogueTitle" type="Label" parent="Margin/V"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "..."
+theme_override_colors/font_color = Color(0.98, 0.94, 0.82, 1)
+theme_override_font_sizes/font_size = 20
+
+[node name="DialogueBody" type="Label" parent="Margin/V"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "..."
+theme_override_colors/font_color = Color(0.9, 0.88, 0.82, 1)
+theme_override_font_sizes/font_size = 14
+autowrap_mode = 2
+
+[node name="Hint" type="Label" parent="Margin/V"]
+layout_mode = 2
+text = "[Space / Enter]  닫기"
+horizontal_alignment = 2
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+theme_override_font_sizes/font_size = 11

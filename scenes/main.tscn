@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://b1mainsc000001"]
+[gd_scene load_steps=15 format=3 uid="uid://b1mainsc000001"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" uid="uid://b1pl4y3rmoon" path="res://scenes/player.tscn" id="2_player"]
@@ -8,33 +8,107 @@
 [ext_resource type="PackedScene" uid="uid://b1tdpnl000001" path="res://scenes/ui/todo_panel.tscn" id="6_todo"]
 [ext_resource type="PackedScene" uid="uid://b1ntpnl000001" path="res://scenes/ui/notification_panel.tscn" id="7_notif"]
 [ext_resource type="PackedScene" uid="uid://b1chmkr000001" path="res://scenes/ui/chief_house_marker.tscn" id="8_chief"]
+[ext_resource type="PackedScene" uid="uid://b1chknnpcabcd" path="res://scenes/chicken.tscn" id="9_chick"]
+[ext_resource type="PackedScene" uid="uid://b1intrznabcd1" path="res://scenes/interaction_zone.tscn" id="10_iz"]
+[ext_resource type="PackedScene" uid="uid://b1dlgbox00001" path="res://scenes/ui/dialogue_box.tscn" id="11_dlg"]
+[ext_resource type="Texture2D" path="res://assets/sprites/village_background.png" id="12_bg"]
 
-[sub_resource type="RectangleShape2D" id="RS_world"]
-size = Vector2(1920, 1080)
+[sub_resource type="RectangleShape2D" id="RS_house"]
+size = Vector2(80, 36)
+
+[sub_resource type="RectangleShape2D" id="RS_wall"]
+size = Vector2(20, 1088)
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
 
 [node name="World" type="Node2D" parent="."]
 
-[node name="Background" type="ColorRect" parent="World"]
-offset_right = 1920.0
-offset_bottom = 1080.0
-color = Color(0.18, 0.36, 0.22, 1)
+[node name="Background" type="Sprite2D" parent="World"]
+texture_filter = 1
+centered = false
+texture = ExtResource("12_bg")
 
-[node name="Camera2D" type="Camera2D" parent="World"]
-position = Vector2(960, 540)
-
-[node name="WorldBounds" type="StaticBody2D" parent="World"]
-position = Vector2(960, 540)
+[node name="Buildings" type="StaticBody2D" parent="World"]
 collision_layer = 1
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="World/WorldBounds"]
-shape = SubResource("RS_world")
-disabled = true
+[node name="HouseRed1" type="CollisionShape2D" parent="World/Buildings"]
+position = Vector2(624, 324)
+shape = SubResource("RS_house")
+
+[node name="HouseBrown1" type="CollisionShape2D" parent="World/Buildings"]
+position = Vector2(1200, 324)
+shape = SubResource("RS_house")
+
+[node name="HouseRed2" type="CollisionShape2D" parent="World/Buildings"]
+position = Vector2(560, 740)
+shape = SubResource("RS_house")
+
+[node name="HouseBrown2" type="CollisionShape2D" parent="World/Buildings"]
+position = Vector2(1264, 740)
+shape = SubResource("RS_house")
+
+[node name="HouseRed3" type="CollisionShape2D" parent="World/Buildings"]
+position = Vector2(1456, 772)
+shape = SubResource("RS_house")
+
+[node name="WorldBounds" type="StaticBody2D" parent="World"]
+collision_layer = 1
+
+[node name="Left" type="CollisionShape2D" parent="World/WorldBounds"]
+position = Vector2(-10, 544)
+shape = SubResource("RS_wall")
+
+[node name="Right" type="CollisionShape2D" parent="World/WorldBounds"]
+position = Vector2(1930, 544)
+shape = SubResource("RS_wall")
 
 [node name="Player" parent="World" instance=ExtResource("2_player")]
-position = Vector2(960, 600)
+position = Vector2(960, 720)
+
+[node name="Chickens" type="Node2D" parent="World"]
+
+[node name="Chicken1" parent="World/Chickens" instance=ExtResource("9_chick")]
+position = Vector2(740, 500)
+
+[node name="Chicken2" parent="World/Chickens" instance=ExtResource("9_chick")]
+position = Vector2(1320, 500)
+
+[node name="Chicken3" parent="World/Chickens" instance=ExtResource("9_chick")]
+position = Vector2(440, 760)
+
+[node name="Chicken4" parent="World/Chickens" instance=ExtResource("9_chick")]
+position = Vector2(1500, 820)
+
+[node name="Chicken5" parent="World/Chickens" instance=ExtResource("9_chick")]
+position = Vector2(880, 870)
+
+[node name="Zones" type="Node2D" parent="World"]
+
+[node name="ZoneRed1" parent="World/Zones" instance=ExtResource("10_iz") groups=["interaction_zone"]]
+position = Vector2(624, 380)
+title = "EJ의 집"
+body = "촌장 EJ의 오두막입니다. 집중을 마치고 잠시 들러보세요."
+
+[node name="ZoneBrown1" parent="World/Zones" instance=ExtResource("10_iz") groups=["interaction_zone"]]
+position = Vector2(1200, 380)
+title = "장터"
+body = "마을 장터예요. 곧 농작물을 거래할 수 있게 됩니다."
+
+[node name="ZoneRed2" parent="World/Zones" instance=ExtResource("10_iz") groups=["interaction_zone"]]
+position = Vector2(560, 796)
+title = "주민 오두막"
+body = "첫 번째 주민의 집입니다. 사이클 5회를 완료하면 인사를 건넵니다."
+
+[node name="ZoneBrown2" parent="World/Zones" instance=ExtResource("10_iz") groups=["interaction_zone"]]
+position = Vector2(1264, 796)
+title = "도서관"
+body = "마을의 작은 도서관. 집중 통계를 모아두는 곳이 될 거예요."
+
+[node name="ZoneRed3" parent="World/Zones" instance=ExtResource("10_iz") groups=["interaction_zone"]]
+position = Vector2(1456, 828)
+title = "여관"
+body = "지친 모험가들이 쉬어가는 곳. 휴식 시간 보너스를 받아보세요."
 
 [node name="UILayer" type="CanvasLayer" parent="."]
 
@@ -55,9 +129,11 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -60.0
-offset_top = -80.0
+offset_top = -240.0
 offset_right = 60.0
-offset_bottom = 80.0
+offset_bottom = -80.0
+
+[node name="DialogueBox" parent="UILayer" instance=ExtResource("11_dlg")]
 
 [node name="InfoDialog" type="AcceptDialog" parent="UILayer"]
 title = "info"

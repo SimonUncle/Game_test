@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3 uid="uid://b1chknnpcabcd"]
+
+[ext_resource type="Script" path="res://scripts/chicken.gd" id="1_chick"]
+
+[sub_resource type="RectangleShape2D" id="RS_chick"]
+size = Vector2(10, 6)
+
+[node name="Chicken" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 1
+script = ExtResource("1_chick")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+offset = Vector2(0, -4)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 4)
+shape = SubResource("RS_chick")
