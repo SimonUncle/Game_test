@@ -1,31 +1,42 @@
 extends CharacterBody2D
-## Chief character. 4-directional movement with a 2-frame walk cycle
-## driven by an AtlasTexture region on the spritesheet
-## (rows = down/left/right/up; cols = step 0 / step 1).
+## Chief character. Uses the Sparklin "Ninja Adventure" character sheet
+## (CC0): 64x112, 4 cols x 7 rows of 16x16 frames.
+##
+##   col 0 = facing down
+##   col 1 = facing up
+##   col 2 = facing right  (we flip_h for left)
+##   col 3 = facing right, alternate frame
+##
+##   row 0 = idle
+##   row 4, row 5 = walk frames (alternate every step)
 
 @export var speed: float = 110.0
 
-const FRAME_W := 16
-const FRAME_H := 24
+const FRAME := 16
 const ANIM_FPS := 6.0
+
+const COL_DOWN := 0
+const COL_UP := 1
+const COL_SIDE := 2
+const ROW_IDLE := 0
+const ROW_WALK := [4, 5]
 
 @onready var sprite: Sprite2D = $Sprite2D
 
-var _direction_row := 0      # 0=down 1=left 2=right 3=up
-var _frame_col := 0
+enum Dir { DOWN, UP, LEFT, RIGHT }
+var _dir: Dir = Dir.DOWN
+var _walk_step := 0
 var _frame_accum := 0.0
+var _is_moving := false
 var _atlas: AtlasTexture
 
 
 func _ready() -> void:
-	# Spritesheet is loaded by the scene; wrap it in an AtlasTexture so
-	# we can swap regions every frame without preloading per-frame textures.
-	var sheet := load("res://assets/sprites/chief_sheet.png") as Texture2D
+	var sheet := load("res://assets/sparklin/character.png") as Texture2D
 	_atlas = AtlasTexture.new()
 	_atlas.atlas = sheet
-	_atlas.region = Rect2(0, 0, FRAME_W, FRAME_H)
+	_atlas.region = Rect2(0, 0, FRAME, FRAME)
 	sprite.texture = _atlas
-	sprite.flip_h = false
 
 
 func _physics_process(delta: float) -> void:
@@ -33,25 +44,34 @@ func _physics_process(delta: float) -> void:
 	velocity = input_vec * speed
 	move_and_slide()
 
-	if input_vec.length() > 0.05:
-		_update_direction(input_vec)
+	_is_moving = input_vec.length() > 0.05
+	if _is_moving:
+		if abs(input_vec.x) > abs(input_vec.y):
+			_dir = Dir.LEFT if input_vec.x < 0 else Dir.RIGHT
+		else:
+			_dir = Dir.UP if input_vec.y < 0 else Dir.DOWN
+
 		_frame_accum += delta * ANIM_FPS
 		if _frame_accum >= 1.0:
 			_frame_accum = 0.0
-			_frame_col = 1 - _frame_col
+			_walk_step = 1 - _walk_step
 	else:
-		_frame_col = 0
 		_frame_accum = 0.0
+		_walk_step = 0
 
-	_atlas.region = Rect2(
-		_frame_col * FRAME_W,
-		_direction_row * FRAME_H,
-		FRAME_W, FRAME_H
-	)
+	_apply_region()
 
 
-func _update_direction(v: Vector2) -> void:
-	if abs(v.x) > abs(v.y):
-		_direction_row = 1 if v.x < 0 else 2
-	else:
-		_direction_row = 3 if v.y < 0 else 0
+func _apply_region() -> void:
+	var col := _col_for_dir()
+	var row: int = ROW_IDLE if not _is_moving else ROW_WALK[_walk_step]
+	_atlas.region = Rect2(col * FRAME, row * FRAME, FRAME, FRAME)
+	sprite.flip_h = (_dir == Dir.LEFT)
+
+
+func _col_for_dir() -> int:
+	match _dir:
+		Dir.DOWN: return COL_DOWN
+		Dir.UP:   return COL_UP
+		Dir.LEFT, Dir.RIGHT: return COL_SIDE
+		_: return COL_DOWN

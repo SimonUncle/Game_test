@@ -14,10 +14,10 @@
 [ext_resource type="Texture2D" path="res://assets/sprites/village_background.png" id="12_bg"]
 
 [sub_resource type="RectangleShape2D" id="RS_house"]
-size = Vector2(80, 36)
+size = Vector2(72, 28)
 
 [sub_resource type="RectangleShape2D" id="RS_wall"]
-size = Vector2(20, 1088)
+size = Vector2(20, 768)
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -32,83 +32,110 @@ texture = ExtResource("12_bg")
 [node name="Buildings" type="StaticBody2D" parent="World"]
 collision_layer = 1
 
-[node name="HouseRed1" type="CollisionShape2D" parent="World/Buildings"]
-position = Vector2(624, 324)
+[node name="House1" type="CollisionShape2D" parent="World/Buildings"]
+position = Vector2(200, 160)
 shape = SubResource("RS_house")
 
-[node name="HouseBrown1" type="CollisionShape2D" parent="World/Buildings"]
-position = Vector2(1200, 324)
+[node name="House2" type="CollisionShape2D" parent="World/Buildings"]
+position = Vector2(392, 128)
 shape = SubResource("RS_house")
 
-[node name="HouseRed2" type="CollisionShape2D" parent="World/Buildings"]
-position = Vector2(560, 740)
+[node name="House3" type="CollisionShape2D" parent="World/Buildings"]
+position = Vector2(840, 144)
 shape = SubResource("RS_house")
 
-[node name="HouseBrown2" type="CollisionShape2D" parent="World/Buildings"]
-position = Vector2(1264, 740)
+[node name="House4" type="CollisionShape2D" parent="World/Buildings"]
+position = Vector2(1064, 176)
 shape = SubResource("RS_house")
 
-[node name="HouseRed3" type="CollisionShape2D" parent="World/Buildings"]
-position = Vector2(1456, 772)
+[node name="House5" type="CollisionShape2D" parent="World/Buildings"]
+position = Vector2(200, 480)
+shape = SubResource("RS_house")
+
+[node name="House6" type="CollisionShape2D" parent="World/Buildings"]
+position = Vector2(456, 512)
+shape = SubResource("RS_house")
+
+[node name="House7" type="CollisionShape2D" parent="World/Buildings"]
+position = Vector2(840, 480)
+shape = SubResource("RS_house")
+
+[node name="House8" type="CollisionShape2D" parent="World/Buildings"]
+position = Vector2(1080, 512)
 shape = SubResource("RS_house")
 
 [node name="WorldBounds" type="StaticBody2D" parent="World"]
 collision_layer = 1
 
 [node name="Left" type="CollisionShape2D" parent="World/WorldBounds"]
-position = Vector2(-10, 544)
+position = Vector2(70, 384)
 shape = SubResource("RS_wall")
 
 [node name="Right" type="CollisionShape2D" parent="World/WorldBounds"]
-position = Vector2(1930, 544)
+position = Vector2(1290, 384)
 shape = SubResource("RS_wall")
 
 [node name="Player" parent="World" instance=ExtResource("2_player")]
-position = Vector2(960, 720)
+position = Vector2(640, 480)
 
 [node name="Chickens" type="Node2D" parent="World"]
 
 [node name="Chicken1" parent="World/Chickens" instance=ExtResource("9_chick")]
-position = Vector2(740, 500)
+position = Vector2(320, 280)
 
 [node name="Chicken2" parent="World/Chickens" instance=ExtResource("9_chick")]
-position = Vector2(1320, 500)
+position = Vector2(960, 240)
 
 [node name="Chicken3" parent="World/Chickens" instance=ExtResource("9_chick")]
-position = Vector2(440, 760)
+position = Vector2(320, 600)
 
 [node name="Chicken4" parent="World/Chickens" instance=ExtResource("9_chick")]
-position = Vector2(1500, 820)
+position = Vector2(1000, 620)
 
 [node name="Chicken5" parent="World/Chickens" instance=ExtResource("9_chick")]
-position = Vector2(880, 870)
+position = Vector2(560, 700)
 
 [node name="Zones" type="Node2D" parent="World"]
 
-[node name="ZoneRed1" parent="World/Zones" instance=ExtResource("10_iz") groups=["interaction_zone"]]
-position = Vector2(624, 380)
-title = "EJ의 집"
-body = "촌장 EJ의 오두막입니다. 집중을 마치고 잠시 들러보세요."
+[node name="Zone1" parent="World/Zones" instance=ExtResource("10_iz") groups=["interaction_zone"]]
+position = Vector2(200, 200)
+title = "오두막"
+body = "포근한 오두막 한 채. 집중을 마치고 잠시 들러보세요."
 
-[node name="ZoneBrown1" parent="World/Zones" instance=ExtResource("10_iz") groups=["interaction_zone"]]
-position = Vector2(1200, 380)
+[node name="Zone2" parent="World/Zones" instance=ExtResource("10_iz") groups=["interaction_zone"]]
+position = Vector2(392, 168)
+title = "마을 회관"
+body = "주민들이 모이는 곳입니다. 사이클 통계가 게시됩니다."
+
+[node name="Zone3" parent="World/Zones" instance=ExtResource("10_iz") groups=["interaction_zone"]]
+position = Vector2(840, 184)
 title = "장터"
-body = "마을 장터예요. 곧 농작물을 거래할 수 있게 됩니다."
+body = "농작물과 도구를 거래할 수 있게 될 곳."
 
-[node name="ZoneRed2" parent="World/Zones" instance=ExtResource("10_iz") groups=["interaction_zone"]]
-position = Vector2(560, 796)
-title = "주민 오두막"
-body = "첫 번째 주민의 집입니다. 사이클 5회를 완료하면 인사를 건넵니다."
-
-[node name="ZoneBrown2" parent="World/Zones" instance=ExtResource("10_iz") groups=["interaction_zone"]]
-position = Vector2(1264, 796)
-title = "도서관"
-body = "마을의 작은 도서관. 집중 통계를 모아두는 곳이 될 거예요."
-
-[node name="ZoneRed3" parent="World/Zones" instance=ExtResource("10_iz") groups=["interaction_zone"]]
-position = Vector2(1456, 828)
+[node name="Zone4" parent="World/Zones" instance=ExtResource("10_iz") groups=["interaction_zone"]]
+position = Vector2(1064, 216)
 title = "여관"
-body = "지친 모험가들이 쉬어가는 곳. 휴식 시간 보너스를 받아보세요."
+body = "지친 모험가들이 쉬어가는 곳. 휴식 보너스를 받아보세요."
+
+[node name="Zone5" parent="World/Zones" instance=ExtResource("10_iz") groups=["interaction_zone"]]
+position = Vector2(200, 520)
+title = "도서관"
+body = "집중 기록을 모아두는 작은 도서관."
+
+[node name="Zone6" parent="World/Zones" instance=ExtResource("10_iz") groups=["interaction_zone"]]
+position = Vector2(456, 552)
+title = "EJ의 집"
+body = "촌장 EJ의 오두막입니다."
+
+[node name="Zone7" parent="World/Zones" instance=ExtResource("10_iz") groups=["interaction_zone"]]
+position = Vector2(840, 520)
+title = "주민 오두막"
+body = "첫 번째 주민의 집. 사이클 5회 달성 시 인사를 건넵니다."
+
+[node name="Zone8" parent="World/Zones" instance=ExtResource("10_iz") groups=["interaction_zone"]]
+position = Vector2(1080, 552)
+title = "작업장"
+body = "도구와 가구를 만드는 곳."
 
 [node name="UILayer" type="CanvasLayer" parent="."]
 
@@ -129,9 +156,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -60.0
-offset_top = -240.0
+offset_top = -260.0
 offset_right = 60.0
-offset_bottom = -80.0
+offset_bottom = -100.0
 
 [node name="DialogueBox" parent="UILayer" instance=ExtResource("11_dlg")]
 
