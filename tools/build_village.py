@@ -58,7 +58,12 @@ HOUSES = [
 
 TREE_ROUND = chunk(4, 10, 2, 2)
 TREE_DARK  = chunk(8, 10, 2, 2)
-TREES = [TREE_ROUND, TREE_DARK, TREE_ROUND, TREE_DARK, TREE_DARK]
+TREE_LEFT  = chunk(0, 10, 2, 2)
+TREE_PINE  = chunk(6, 10, 2, 2)
+# Mix of "tree" sized things (2x2) — some entries duplicated to weight the mix.
+TREES_BIG = [TREE_ROUND, TREE_DARK, TREE_LEFT, TREE_PINE]
+# Mid-size: just the big bush — slots between trees to break the grid.
+MID_FILLERS = []  # populated after BUSH_BIG is defined (see below)
 
 CHERRY_BIG = chunk(4, 16, 2, 2)
 CHERRY_SM  = chunk(8, 16, 2, 2)
@@ -70,6 +75,9 @@ SUNFLOWER  = tile(3, 15)
 STONE_BIG  = chunk(14, 11, 2, 2)
 STONE_SM   = tile(13, 11)
 FENCE_H    = chunk(5, 4, 3, 2)       # horizontal fence segment
+
+# Now that BUSH_BIG and BUSH_SM exist, fill the filler list
+MID_FILLERS = [BUSH_BIG, BUSH_BIG, BUSH_SM]
 
 
 def stamp(canvas: Image.Image, img: Image.Image, x_px: int, y_px: int) -> None:
@@ -114,7 +122,7 @@ def feather_path_edges(canvas: Image.Image, path_cells: set,
                      nx * TILE + TILE + 3, ny * TILE + TILE + 3],
                     fill=(120, 85, 50, a),
                 )
-    layer = layer.filter(ImageFilter.GaussianBlur(radius=3.5))
+    layer = layer.filter(ImageFilter.GaussianBlur(radius=5.5))
     canvas.alpha_composite(layer)
 
 
@@ -256,7 +264,7 @@ def main() -> None:
             if ncell not in path_cells:
                 edge_cells.append(ncell)
     for (tx, ty) in edge_cells:
-        if 3 <= tx < cols and 0 <= ty < rows and random.random() < 0.22:
+        if 3 <= tx < cols and 0 <= ty < rows and random.random() < 0.10:
             bg.paste(random_flip(dirt), (tx * TILE, ty * TILE))
             path_cells.add((tx, ty))
 
@@ -291,11 +299,17 @@ def main() -> None:
                for dy in range(img.size[1] // TILE)):
             continue
         px, py = tx * TILE, ty * TILE
-        # doorstep dirt — 2 tiles, slightly randomized shape
+        # Soft front yard: a feathered brown patch (not a hard 2-tile dirt
+        # rectangle) right under the door, with grass tufts breaking its edge.
         door_tx = tx + img.size[0] // TILE // 2 - 1
         door_ty = ty + img.size[1] // TILE
-        for dx in range(2):
-            bg.paste(random_flip(dirt), ((door_tx + dx) * TILE, door_ty * TILE))
+        yard_layer = Image.new("RGBA", (TILE * 4, TILE * 3), (0, 0, 0, 0))
+        yard_d = ImageDraw.Draw(yard_layer)
+        yard_d.ellipse([4, 4, TILE * 4 - 4, TILE * 3 - 4],
+                       fill=(155, 100, 55, 220))
+        yard_layer = yard_layer.filter(ImageFilter.GaussianBlur(radius=4))
+        bg.alpha_composite(yard_layer,
+                           (door_tx * TILE - TILE, door_ty * TILE - 4))
         # AO under building (subtle wider green darkening)
         ao_cx = px + img.size[0] // 2
         ao_cy = py + img.size[1] - 2
@@ -314,42 +328,53 @@ def main() -> None:
                 return True
         return False
 
-    # 5) Forest — dense outer ring with AO + drop shadow + tile-aligned
-    def place_tree(tx: int, ty: int, allow_cherry: bool = False) -> bool:
+    # 5) Forest — varied sizes (big tree / mid bush / cherry), per-object
+    # y-jitter so they don't stack into a perfect grid row.
+    def place_object(tx: int, ty: int, obj_img: Image.Image,
+                     y_jitter: int = 3) -> bool:
+        cw = obj_img.size[0] // TILE
+        ch = obj_img.size[1] // TILE
         if on_path(tx, ty) or near_path(tx, ty, dist=0):
             return False
-        if overlaps_house(tx * TILE, ty * TILE, 32, 32):
+        if overlaps_house(tx * TILE, ty * TILE, obj_img.size[0], obj_img.size[1]):
             return False
-        for ddy in range(2):
-            for ddx in range(2):
+        for ddy in range(ch):
+            for ddx in range(cw):
                 if (tx + ddx, ty + ddy) in occupied:
                     return False
-        roll = random.random()
-        if allow_cherry and roll < 0.12:
-            tree = CHERRY_BIG if roll < 0.06 else CHERRY_SM
-        else:
-            tree = random.choice(TREES)
-        trunk_x = tx * TILE + tree.size[0] // 2
-        trunk_y = ty * TILE + tree.size[1] - 4
-        darken_grass_patch(bg, trunk_x + 1, trunk_y, tree.size[0] // 2 + 2, 6)
-        draw_shadow(bg, trunk_x + 3, trunk_y, tree.size[0] // 2 - 1, 4,
-                    alpha=110, blur=1.8)
-        stamp(bg, random_hflip(tree), tx * TILE, ty * TILE - TILE)
-        cw, ch = tree.size[0] // TILE, tree.size[1] // TILE
+        # y-jitter — break the strict grid row
+        jy = random.randint(-y_jitter, y_jitter)
+        px = tx * TILE
+        py = ty * TILE - TILE + jy
+        trunk_x = px + obj_img.size[0] // 2
+        trunk_y = py + obj_img.size[1] - 4
+        darken_grass_patch(bg, trunk_x + 1, trunk_y,
+                           obj_img.size[0] // 2 + 2, 6)
+        draw_shadow(bg, trunk_x + 3, trunk_y,
+                    obj_img.size[0] // 2 - 1, 4, alpha=110, blur=1.8)
+        stamp(bg, random_hflip(obj_img), px, py)
         for ddy in range(ch + 1):
             for ddx in range(cw):
                 occupied.add((tx + ddx, ty + ddy - 1))
         return True
 
-    # Outer ring trees
+    def pick_forest_obj(depth: int, allow_cherry: bool) -> Image.Image:
+        r = random.random()
+        if allow_cherry and r < 0.10:
+            return CHERRY_BIG if r < 0.05 else CHERRY_SM
+        if r < 0.18:
+            return random.choice(MID_FILLERS)
+        return random.choice(TREES_BIG)
+
+    # Outer ring — smooth probability falloff instead of cliff at depth=5
     for ty in range(0, rows, 2):
         for tx in range(3, cols, 2):
             depth = min(ty, rows - 1 - ty, cols - 1 - tx)
-            if depth < 5:
-                if random.random() < 0.93:
-                    place_tree(tx, ty, allow_cherry=(depth >= 3))
-            elif depth < 7 and random.random() < 0.32:
-                place_tree(tx, ty, allow_cherry=True)
+            # density: 0.92 at edge, fading to 0.05 by depth 8
+            density = max(0.05, 0.92 - depth * 0.115)
+            if random.random() < density:
+                obj = pick_forest_obj(depth, allow_cherry=(depth >= 3))
+                place_object(tx, ty, obj)
 
     # A few cherry accents inside the village
     for (hx, hy, hw, hh) in house_rects:
@@ -357,8 +382,44 @@ def main() -> None:
             tx = (hx // TILE) + random.randint(-2, 4)
             ty = (hy // TILE) + random.randint(3, 5)
             if 4 <= tx < cols - 3 and 2 <= ty < rows - 3:
-                if place_tree(tx, ty, allow_cherry=True):
+                if place_object(tx, ty, CHERRY_SM):
                     break
+
+    # 6a) Flower beds — pick a dozen cluster centers in open grass and
+    # scatter 4-8 sunflowers around each so they read as flower beds
+    # rather than randomly sprinkled single flowers.
+    flowerbeds = 0
+    attempts = 0
+    while flowerbeds < 14 and attempts < 200:
+        attempts += 1
+        cxx = random.randint(6, cols - 6)
+        cyy = random.randint(4, rows - 5)
+        if on_path(cxx, cyy) or near_path(cxx, cyy, 2):
+            continue
+        if (cxx, cyy) in occupied or overlaps_house(cxx * TILE, cyy * TILE, 64, 64):
+            continue
+        # Plant a cluster
+        n = random.randint(4, 8)
+        planted = 0
+        for _ in range(n * 2):
+            dx = random.randint(-2, 2)
+            dy = random.randint(-2, 2)
+            ftx, fty = cxx + dx, cyy + dy
+            if 4 <= ftx < cols - 2 and 2 <= fty < rows - 2:
+                if on_path(ftx, fty) or (ftx, fty) in occupied:
+                    continue
+                if overlaps_house(ftx * TILE, fty * TILE):
+                    continue
+                px = ftx * TILE + random.randint(-2, 2)
+                py = fty * TILE + random.randint(-2, 2)
+                draw_shadow(bg, px + TILE // 2, py + TILE - 3, 3, 2, alpha=45)
+                stamp(bg, SUNFLOWER, px, py)
+                occupied.add((ftx, fty))
+                planted += 1
+                if planted >= n:
+                    break
+        if planted > 0:
+            flowerbeds += 1
 
     # 6) Ground decorations — bushes, sunflowers, grass tufts (dense)
     decor = 0
