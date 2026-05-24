@@ -47,7 +47,9 @@ def chunk(col: int, row: int, w: int, h: int) -> Image.Image:
 GRASS      = (14, 16)            # clean grass, no black seam
 GRASS_ALT  = (13, 16)            # yellow-dappled variant
 DIRT       = (21, 16)
-WATER      = (20, 8)
+WATER      = (23, 7)             # light blue with subtle wave detail
+WATER_LILY = (23, 8)             # water with a lily pad (accent)
+DOCK       = (24, 8)             # wooden plank, vertical (used as bridge)
 
 HOUSES = [
     chunk(0,  0, 4, 3),
@@ -239,13 +241,44 @@ def main() -> None:
             base = grass_alt if in_patch and random.random() < 0.65 else grass
             bg.paste(random_flip(base), (tx * TILE, ty * TILE))
 
-    # 2) River on left. Tried scattering pebble tiles along the bank,
-    # but tile (13,11) — which I labeled STONE_SM — is actually a
-    # brown wooden block and read as a row of brown rectangles next to
-    # the blue water. Removed until a real pebble tile is identified.
+    # 2) River on left. Uses the wave-detail water tile (23,7) so it
+    # reads clearly as a body of water rather than a flat blue strip.
+    # Occasional lily pads break up the surface; a wooden bridge crosses
+    # at one row so the player can walk over.
+    water_lily = tile(*WATER_LILY)
+    dock = tile(*DOCK)
+
+    # Decide bridge row — near horizontal path's east-west center
+    bridge_y = cy
+
     for ty in range(rows):
-        for tx in range(3):
-            bg.paste(random_flip(water), (tx * TILE, ty * TILE))
+        for tx in range(4):
+            if ty == bridge_y:
+                # Bridge plank at the chosen row
+                bg.paste(dock, (tx * TILE, ty * TILE))
+            elif tx < 3:
+                # Plain water with very occasional lily pad
+                use_lily = random.random() < 0.04
+                bg.paste(random_flip(water_lily if use_lily else water),
+                         (tx * TILE, ty * TILE))
+
+    # Darken band where water meets grass — gives the river a defined bank
+    bank_layer = Image.new("RGBA", bg.size, (0, 0, 0, 0))
+    bank_d = ImageDraw.Draw(bank_layer)
+    for ty in range(rows):
+        if ty == bridge_y:
+            continue
+        bank_d.rectangle(
+            [3 * TILE - 2, ty * TILE, 3 * TILE + 4, ty * TILE + TILE],
+            fill=(15, 60, 100, 90),
+        )
+    bank_layer = bank_layer.filter(ImageFilter.GaussianBlur(radius=1.6))
+    bg.alpha_composite(bank_layer)
+
+    # Bridge approach — extend dock 1 tile onto the east grass so it
+    # looks anchored
+    bg.paste(dock, (3 * TILE, bridge_y * TILE))
+    bg.paste(dock, (4 * TILE, bridge_y * TILE))
 
     # 3) Winding paths instead of a rigid cross.
     # Vertical path: center column cx with a slow sine deviation.
@@ -312,18 +345,27 @@ def main() -> None:
 
     # 4) Houses with AO patch + drop shadow + doorstep.
     placements = [
-        (HOUSES[0], 7,  7),
-        (HOUSES[1], 16, 6),
-        (HOUSES[2], 27, 7),
-        (HOUSES[3], 47, 6),
-        (HOUSES[0], 56, 7),
-        (HOUSES[1], 67, 8),
-        (HOUSES[3], 7,  27),
-        (HOUSES[2], 16, 29),
-        (HOUSES[0], 27, 27),
-        (HOUSES[1], 47, 29),
-        (HOUSES[3], 58, 27),
-        (HOUSES[2], 68, 29),
+        # North band (rows 5-9)
+        (HOUSES[0], 8,  6),
+        (HOUSES[1], 18, 5),
+        (HOUSES[3], 27, 7),
+        (HOUSES[2], 36, 5),
+        (HOUSES[1], 47, 6),
+        (HOUSES[0], 57, 7),
+        (HOUSES[3], 67, 5),
+        # Mid band west (rows 14-18)
+        (HOUSES[2], 8,  15),
+        (HOUSES[0], 17, 17),
+        (HOUSES[3], 56, 16),
+        (HOUSES[1], 65, 18),
+        # South band (rows 27-32)
+        (HOUSES[3], 7,  28),
+        (HOUSES[2], 17, 30),
+        (HOUSES[1], 28, 28),
+        (HOUSES[0], 38, 30),
+        (HOUSES[2], 48, 28),
+        (HOUSES[3], 58, 30),
+        (HOUSES[1], 68, 28),
     ]
     house_rects = []
     occupied: set[tuple[int, int]] = set(plaza_cells)  # plaza is off-limits
