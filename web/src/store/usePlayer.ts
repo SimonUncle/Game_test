@@ -16,7 +16,7 @@ interface PlayerStore {
 
 export const usePlayer = create<PlayerStore>((set) => ({
   x: 640,
-  y: 560,        // spawn south of the central plaza so the sign reads clearly
+  y: 460,        // just south of the plaza marker
   direction: "down",
   moving: false,
 

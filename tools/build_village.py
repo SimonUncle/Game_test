@@ -473,6 +473,40 @@ def main() -> None:
 
     # Cherry-blossom-near-house pass disabled — same reason.
 
+    # 5b) Interior tree groves — scatter small clusters of trees in the
+    # village interior so the canopy reads as "village in the woods",
+    # not "village surrounded by woods." Each grove is 3-6 trees of
+    # mixed species placed via place_object so it respects every
+    # existing exclusion (paths, plaza, houses, occupied tiles).
+    groves_planted = 0
+    grove_attempts = 0
+    while groves_planted < 10 and grove_attempts < 120:
+        grove_attempts += 1
+        # Aim for the village interior — between the forest border and
+        # the center plaza. Skip the outermost 5-tile forest ring.
+        gcx = random.randint(7, cols - 7)
+        gcy = random.randint(6, rows - 7)
+        if in_plaza(gcx, gcy) or on_path(gcx, gcy) or near_path(gcx, gcy, 2):
+            continue
+        # Check grove center isn't on a house
+        if overlaps_house(gcx * TILE, gcy * TILE, 64, 64):
+            continue
+        # Try to plant 3-6 trees clustered around the center
+        target = random.randint(3, 6)
+        planted = 0
+        tries = 0
+        while planted < target and tries < 12:
+            tries += 1
+            dx = random.randint(-3, 3)
+            dy = random.randint(-3, 3)
+            tx, ty = gcx + dx, gcy + dy
+            obj = random.choice(TREES_BIG + MID_FILLERS)
+            hflip = random.random() < 0.5 if obj in TREES_BIG else False
+            if place_object(tx, ty, obj, hflip=hflip):
+                planted += 1
+        if planted > 0:
+            groves_planted += 1
+
     # 6a) Flower beds — pick a dozen cluster centers in open grass and
     # scatter 4-8 sunflowers around each so they read as flower beds
     # rather than randomly sprinkled single flowers.
