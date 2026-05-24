@@ -493,22 +493,10 @@ def main() -> None:
             elif roll < 0.08:
                 stamp(bg, GRASS_TUFT, px, py)
 
-    # 7) Scattered boulders in clearings (1-2 per quadrant)
-    for _ in range(8):
-        tx = random.randint(6, cols - 6)
-        ty = random.randint(4, rows - 5)
-        if on_path(tx, ty) or near_path(tx, ty, 1) or (tx, ty) in occupied:
-            continue
-        if overlaps_house(tx * TILE, ty * TILE, 32, 32):
-            continue
-        px, py = tx * TILE, ty * TILE
-        darken_grass_patch(bg, px + TILE, py + TILE * 2 - 2, TILE - 2, 4)
-        draw_shadow(bg, px + TILE + 3, py + TILE * 2 - 2, TILE - 4, 3,
-                    alpha=110, blur=1.5)
-        stamp(bg, STONE_BIG, px, py)
-        for ddy in range(2):
-            for ddx in range(2):
-                occupied.add((tx + ddx, ty + ddy))
+    # 7) Boulder pass removed. STONE_BIG = chunk(14,11,2,2) included a
+    # row of unrelated orange sand tiles below the actual rock, so every
+    # placed 'boulder' was a brown rock sitting on top of a bright orange
+    # rectangle — the 'broken stone' artefact the user kept asking about.
 
     # 8) Fences disabled — isolated single fence segments next to houses
     # read as random floating wood structures, not yards. Re-enable only
