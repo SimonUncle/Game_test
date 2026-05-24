@@ -409,13 +409,13 @@ def main() -> None:
         return True
 
     def pick_forest_obj(depth: int, allow_cherry: bool):
-        """Return (img, hflip_ok). Cherry trees have a visible trunk on
-        one side — flipping them mirrors the trunk wrong. Round trees are
-        symmetric enough to flip safely."""
+        """Return (img, hflip_ok). Cherry trees disabled — at the camera
+        zoom we're using, their pink 32×32 sprite reads as a red
+        rectangle next to other red elements (house roofs) and looked
+        broken. Stick to green trees for a unified forest tone."""
+        del allow_cherry  # no longer used
         r = random.random()
-        if allow_cherry and r < 0.08:
-            return (CHERRY_BIG if r < 0.04 else CHERRY_SM, False)
-        if r < 0.18:
+        if r < 0.10:
             return (random.choice(MID_FILLERS), False)
         return (random.choice(TREES_BIG), random.random() < 0.5)
 
@@ -426,33 +426,26 @@ def main() -> None:
             # density: 0.92 at edge, fading to 0.05 by depth 8
             density = max(0.05, 0.92 - depth * 0.115)
             if random.random() < density:
-                obj, hflip = pick_forest_obj(depth, allow_cherry=(depth >= 3))
+                obj, hflip = pick_forest_obj(depth, allow_cherry=False)
                 place_object(tx, ty, obj, hflip=hflip)
 
-    # A few cherry accents inside the village (no flip — trunk visible)
-    for (hx, hy, hw, hh) in house_rects:
-        for _ in range(3):
-            tx = (hx // TILE) + random.randint(-2, 4)
-            ty = (hy // TILE) + random.randint(3, 5)
-            if 4 <= tx < cols - 3 and 2 <= ty < rows - 3:
-                if place_object(tx, ty, CHERRY_SM, hflip=False):
-                    break
+    # Cherry-blossom-near-house pass disabled — same reason.
 
     # 6a) Flower beds — pick a dozen cluster centers in open grass and
     # scatter 4-8 sunflowers around each so they read as flower beds
     # rather than randomly sprinkled single flowers.
     flowerbeds = 0
     attempts = 0
-    while flowerbeds < 14 and attempts < 200:
+    while flowerbeds < 4 and attempts < 100:
         attempts += 1
-        cxx = random.randint(6, cols - 6)
-        cyy = random.randint(4, rows - 5)
-        if on_path(cxx, cyy) or near_path(cxx, cyy, 2):
+        cxx = random.randint(8, cols - 8)
+        cyy = random.randint(6, rows - 7)
+        if on_path(cxx, cyy) or near_path(cxx, cyy, 3):
             continue
         if (cxx, cyy) in occupied or overlaps_house(cxx * TILE, cyy * TILE, 64, 64):
             continue
-        # Plant a cluster
-        n = random.randint(4, 8)
+        # Plant a small tight cluster (3-5 instead of 4-8)
+        n = random.randint(3, 5)
         planted = 0
         for _ in range(n * 2):
             dx = random.randint(-2, 2)
@@ -487,18 +480,17 @@ def main() -> None:
             if overlaps_house(px, py):
                 continue
             roll = random.random()
-            if roll < 0.12:
-                # Generous AO under bush so its brown base reads as
-                # "in shade of plant", not as a misplaced dirt tile.
+            if roll < 0.04:    # bushes — way sparser (was 0.12)
                 darken_grass_patch(bg, px + TILE // 2 + 1, py + TILE - 2,
                                    TILE // 2 + 3, 5, alpha=80)
                 draw_shadow(bg, px + TILE // 2 + 2, py + TILE - 2,
                             7, 2, alpha=90, blur=1.4)
-                stamp(bg, BUSH_BIG if random.random() < 0.5 else BUSH_SM,
-                      px, py)
+                # Only the big leafy bush — small bush had visible
+                # rectangular silhouette at close zoom.
+                stamp(bg, BUSH_BIG, px, py)
                 occupied.add((tx, ty))
                 decor += 1
-            elif roll < 0.18:
+            elif roll < 0.08:
                 stamp(bg, GRASS_TUFT, px, py)
 
     # 7) Scattered boulders in clearings (1-2 per quadrant)
