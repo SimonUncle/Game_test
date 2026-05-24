@@ -238,11 +238,17 @@ def main() -> None:
     # Vertical path: center column cx with a slow sine deviation.
     # Horizontal path: center row cy with deviation.
     PATH_HALF = 2  # half-width (3 tiles total when half=1; we use 2 → 5 wide)
+    PLAZA_R = 5    # center-clearing radius in tiles; paths skip this disc
+
+    def in_plaza(tx: int, ty: int) -> bool:
+        dx = tx - cx
+        dy = ty - cy
+        return dx * dx + dy * dy <= PLAZA_R * PLAZA_R
 
     path_cells: set[tuple[int, int]] = set()
 
     def add_path_cell(tx: int, ty: int) -> None:
-        if 3 <= tx < cols and 0 <= ty < rows:
+        if 3 <= tx < cols and 0 <= ty < rows and not in_plaza(tx, ty):
             path_cells.add((tx, ty))
 
     # Vertical strip — bigger wobble, variable width
@@ -264,6 +270,13 @@ def main() -> None:
     # Stamp path
     for (tx, ty) in path_cells:
         bg.paste(random_flip(dirt), (tx * TILE, ty * TILE))
+
+    # Mark plaza cells as "occupied" so trees/bushes/houses skip them too.
+    plaza_cells: set[tuple[int, int]] = set()
+    for ty in range(rows):
+        for tx in range(cols):
+            if in_plaza(tx, ty):
+                plaza_cells.add((tx, ty))
 
     def on_path(tx: int, ty: int) -> bool:
         return (tx, ty) in path_cells
@@ -300,7 +313,7 @@ def main() -> None:
         (HOUSES[2], 68, 29),
     ]
     house_rects = []
-    occupied: set[tuple[int, int]] = set()
+    occupied: set[tuple[int, int]] = set(plaza_cells)  # plaza is off-limits
 
     for (img, tx, ty) in placements:
         if on_path(tx, ty) or on_path(tx + img.size[0] // TILE - 1, ty):
