@@ -134,9 +134,9 @@ export function Village({ minZoom = 1.4 }: { minZoom?: number }) {
         }}
       >
         {/* Background image. Drop a higher-quality image at
-            public/village_background.png to replace the placeholder. */}
+            public/village_background.png?v=2 to replace the placeholder. */}
         <img
-          src="/village_background.png"
+          src="/village_background.png?v=2"
           alt=""
           className="absolute inset-0 w-full h-full select-none pointer-events-none"
           style={{

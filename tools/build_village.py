@@ -68,10 +68,29 @@ MID_FILLERS = []  # populated after BUSH_BIG is defined (see below)
 CHERRY_BIG = chunk(4, 16, 2, 2)
 CHERRY_SM  = chunk(8, 16, 2, 2)
 
-BUSH_SM    = tile(3, 13)
-BUSH_BIG   = tile(9, 15)
-GRASS_TUFT = tile(4, 15)
-SUNFLOWER  = tile(3, 15)
+def _strip_dirt_base(img: Image.Image) -> Image.Image:
+    """Make the red-brown 'dirt soil' pixels around a plant transparent.
+    These single-tile sprites were drawn for dirt backgrounds, so a
+    rusty soil ring is baked into the bottom 2-3 rows. On grass that
+    ring reads as a misplaced tiny brown rectangle — we drop it here."""
+    out = img.copy().convert("RGBA")
+    px = out.load()
+    w, h = out.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a == 0:
+                continue
+            # Red-brown dirt: red dominant, low green & blue
+            if r > 110 and g < 100 and b < 90 and (r - g) > 35:
+                px[x, y] = (0, 0, 0, 0)
+    return out
+
+
+BUSH_SM    = _strip_dirt_base(tile(3, 13))
+BUSH_BIG   = tile(9, 15)              # already clean — no soil base
+GRASS_TUFT = _strip_dirt_base(tile(4, 15))
+SUNFLOWER  = _strip_dirt_base(tile(3, 15))
 STONE_BIG  = chunk(14, 11, 2, 2)
 STONE_SM   = tile(13, 11)
 FENCE_H    = chunk(5, 4, 3, 2)       # horizontal fence segment
@@ -256,17 +275,9 @@ def main() -> None:
                     return True
         return False
 
-    # Foot-traffic wear: scatter dirt patches just off the path edges
-    edge_cells = []
-    for (tx, ty) in path_cells:
-        for ddy, ddx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-            ncell = (tx + ddx, ty + ddy)
-            if ncell not in path_cells:
-                edge_cells.append(ncell)
-    for (tx, ty) in edge_cells:
-        if 3 <= tx < cols and 0 <= ty < rows and random.random() < 0.10:
-            bg.paste(random_flip(dirt), (tx * TILE, ty * TILE))
-            path_cells.add((tx, ty))
+    # Foot-traffic wear DISABLED — was creating isolated brown blobs far
+    # from the main path. Path is now strictly the planned strip + edge
+    # feathering for the soft boundary.
 
     # Path tonal shading — darker edges, occasional bright center
     darken_path_edges(bg, path_cells)
@@ -316,7 +327,9 @@ def main() -> None:
         darken_grass_patch(bg, ao_cx + 2, ao_cy, img.size[0] // 2 + 6, 10)
         # drop shadow (offset right for sun from upper-left)
         draw_shadow(bg, ao_cx + 6, ao_cy, img.size[0] // 2, 6, alpha=120, blur=2.0)
-        stamp(bg, random_hflip(img), px, py)
+        # Do NOT h-flip houses — they have asymmetric details (chimneys,
+        # door positions, window styles) that look wrong mirrored.
+        stamp(bg, img, px, py)
         house_rects.append((px, py, img.size[0], img.size[1]))
         for ddy in range(img.size[1] // TILE):
             for ddx in range(img.size[0] // TILE):
@@ -331,13 +344,21 @@ def main() -> None:
     # 5) Forest — varied sizes (big tree / mid bush / cherry), per-object
     # y-jitter so they don't stack into a perfect grid row.
     def place_object(tx: int, ty: int, obj_img: Image.Image,
-                     y_jitter: int = 3) -> bool:
+                     y_jitter: int = 3,
+                     hflip: bool = False) -> bool:
         cw = obj_img.size[0] // TILE
         ch = obj_img.size[1] // TILE
         if on_path(tx, ty) or near_path(tx, ty, dist=0):
             return False
-        if overlaps_house(tx * TILE, ty * TILE, obj_img.size[0], obj_img.size[1]):
-            return False
+        # Stricter house exclusion — entire tree bounding box must be clear
+        # of any house, with 8px safety margin so tree canopies don't
+        # overlap house walls.
+        for (hx, hy, hw, hh) in house_rects:
+            if (tx * TILE + obj_img.size[0] > hx - 8 and
+                tx * TILE < hx + hw + 8 and
+                ty * TILE + obj_img.size[1] > hy - 8 and
+                ty * TILE < hy + hh + 8):
+                return False
         for ddy in range(ch):
             for ddx in range(cw):
                 if (tx + ddx, ty + ddy) in occupied:
@@ -348,23 +369,29 @@ def main() -> None:
         py = ty * TILE - TILE + jy
         trunk_x = px + obj_img.size[0] // 2
         trunk_y = py + obj_img.size[1] - 4
+        # AO patch is FATTER than the tree base so the brown trunk pixels
+        # always sit on a darkened grass disc, not on raw bright grass.
         darken_grass_patch(bg, trunk_x + 1, trunk_y,
-                           obj_img.size[0] // 2 + 2, 6)
+                           obj_img.size[0] // 2 + 4, 8, alpha=85)
         draw_shadow(bg, trunk_x + 3, trunk_y,
-                    obj_img.size[0] // 2 - 1, 4, alpha=110, blur=1.8)
-        stamp(bg, random_hflip(obj_img), px, py)
+                    obj_img.size[0] // 2 + 1, 5, alpha=130, blur=2.5)
+        stamped = obj_img.transpose(Image.FLIP_LEFT_RIGHT) if hflip else obj_img
+        stamp(bg, stamped, px, py)
         for ddy in range(ch + 1):
             for ddx in range(cw):
                 occupied.add((tx + ddx, ty + ddy - 1))
         return True
 
-    def pick_forest_obj(depth: int, allow_cherry: bool) -> Image.Image:
+    def pick_forest_obj(depth: int, allow_cherry: bool):
+        """Return (img, hflip_ok). Cherry trees have a visible trunk on
+        one side — flipping them mirrors the trunk wrong. Round trees are
+        symmetric enough to flip safely."""
         r = random.random()
-        if allow_cherry and r < 0.10:
-            return CHERRY_BIG if r < 0.05 else CHERRY_SM
+        if allow_cherry and r < 0.08:
+            return (CHERRY_BIG if r < 0.04 else CHERRY_SM, False)
         if r < 0.18:
-            return random.choice(MID_FILLERS)
-        return random.choice(TREES_BIG)
+            return (random.choice(MID_FILLERS), False)
+        return (random.choice(TREES_BIG), random.random() < 0.5)
 
     # Outer ring — smooth probability falloff instead of cliff at depth=5
     for ty in range(0, rows, 2):
@@ -373,16 +400,16 @@ def main() -> None:
             # density: 0.92 at edge, fading to 0.05 by depth 8
             density = max(0.05, 0.92 - depth * 0.115)
             if random.random() < density:
-                obj = pick_forest_obj(depth, allow_cherry=(depth >= 3))
-                place_object(tx, ty, obj)
+                obj, hflip = pick_forest_obj(depth, allow_cherry=(depth >= 3))
+                place_object(tx, ty, obj, hflip=hflip)
 
-    # A few cherry accents inside the village
+    # A few cherry accents inside the village (no flip — trunk visible)
     for (hx, hy, hw, hh) in house_rects:
-        for _ in range(2):
+        for _ in range(3):
             tx = (hx // TILE) + random.randint(-2, 4)
             ty = (hy // TILE) + random.randint(3, 5)
             if 4 <= tx < cols - 3 and 2 <= ty < rows - 3:
-                if place_object(tx, ty, CHERRY_SM):
+                if place_object(tx, ty, CHERRY_SM, hflip=False):
                     break
 
     # 6a) Flower beds — pick a dozen cluster centers in open grass and
@@ -412,7 +439,10 @@ def main() -> None:
                     continue
                 px = ftx * TILE + random.randint(-2, 2)
                 py = fty * TILE + random.randint(-2, 2)
-                draw_shadow(bg, px + TILE // 2, py + TILE - 3, 3, 2, alpha=45)
+                darken_grass_patch(bg, px + TILE // 2, py + TILE - 2,
+                                   5, 3, alpha=70)
+                draw_shadow(bg, px + TILE // 2 + 1, py + TILE - 2,
+                            4, 2, alpha=70, blur=1.0)
                 stamp(bg, SUNFLOWER, px, py)
                 occupied.add((ftx, fty))
                 planted += 1
@@ -431,17 +461,18 @@ def main() -> None:
             if overlaps_house(px, py):
                 continue
             roll = random.random()
-            if roll < 0.16:
-                draw_shadow(bg, px + TILE // 2 + 1, py + TILE - 3, 5, 2, alpha=60)
-                stamp(bg, BUSH_BIG if random.random() < 0.5 else BUSH_SM, px, py)
+            if roll < 0.12:
+                # Generous AO under bush so its brown base reads as
+                # "in shade of plant", not as a misplaced dirt tile.
+                darken_grass_patch(bg, px + TILE // 2 + 1, py + TILE - 2,
+                                   TILE // 2 + 3, 5, alpha=80)
+                draw_shadow(bg, px + TILE // 2 + 2, py + TILE - 2,
+                            7, 2, alpha=90, blur=1.4)
+                stamp(bg, BUSH_BIG if random.random() < 0.5 else BUSH_SM,
+                      px, py)
                 occupied.add((tx, ty))
                 decor += 1
-            elif roll < 0.20:
-                draw_shadow(bg, px + TILE // 2 + 1, py + TILE - 3, 4, 2, alpha=55)
-                stamp(bg, SUNFLOWER, px, py)
-                occupied.add((tx, ty))
-                decor += 1
-            elif roll < 0.10:
+            elif roll < 0.18:
                 stamp(bg, GRASS_TUFT, px, py)
 
     # 7) Scattered boulders in clearings (1-2 per quadrant)
@@ -461,24 +492,27 @@ def main() -> None:
             for ddx in range(2):
                 occupied.add((tx + ddx, ty + ddy))
 
-    # 8) Horizontal fence runs along some house frontages (between house and path)
-    for (hx, hy, hw, hh) in house_rects[:4]:
-        # Try to place a 3-wide fence in front of the house, between house and
-        # the nearest path tile, only if there's clear grass space.
-        ftx = hx // TILE + 1            # slight indent from house left
-        fty = hy // TILE + (hh // TILE) + 1
-        if 3 <= ftx < cols - 3 and 0 <= fty < rows:
-            blocked = False
-            for dx in range(3):
-                if (ftx + dx, fty) in path_cells or (ftx + dx, fty) in occupied:
-                    blocked = True
-                    break
-            if not blocked:
-                draw_shadow(bg, ftx * TILE + 24, fty * TILE + 28, 22, 3, alpha=80)
-                stamp(bg, FENCE_H, ftx * TILE, fty * TILE)
-                for dx in range(3):
-                    for dy in range(2):
-                        occupied.add((ftx + dx, fty + dy))
+    # 8) Fences disabled — isolated single fence segments next to houses
+    # read as random floating wood structures, not yards. Re-enable only
+    # when paired with shrubbery + a gate to form a real boundary.
+
+    # Final touch — very mild contrast bump; saturation left alone so the
+    # red-brown dirt path doesn't blow out to orange.
+    from PIL import ImageEnhance
+    bg = ImageEnhance.Contrast(bg).enhance(1.04)
+    bg = ImageEnhance.Brightness(bg).enhance(0.95)
+
+    # Apply a soft sandy tint over the path cells so they read as sandy
+    # walking dirt, not lava-orange clay.
+    overlay = Image.new("RGBA", bg.size, (0, 0, 0, 0))
+    od = ImageDraw.Draw(overlay)
+    for (tx, ty) in path_cells:
+        od.rectangle(
+            [tx * TILE, ty * TILE, tx * TILE + TILE, ty * TILE + TILE],
+            fill=(220, 195, 140, 45),
+        )
+    overlay = overlay.filter(ImageFilter.GaussianBlur(radius=2.0))
+    bg.alpha_composite(overlay)
 
     bg.save(OUT_PATH)
     print(f"wrote {OUT_PATH}  size={bg.size}  decor={decor}")
