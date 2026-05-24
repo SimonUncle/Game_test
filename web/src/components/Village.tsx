@@ -5,6 +5,7 @@ import { Character } from "./Character";
 import { ChiefHouseMarker } from "./ChiefHouseMarker";
 import { DayCycle } from "./DayCycle";
 import { CherryPetals } from "./CherryPetals";
+import { ChickenSwarm } from "./ChickenSwarm";
 
 const WORLD_W = 1280;
 const WORLD_H = 768;
@@ -151,6 +152,9 @@ export function Village({ minZoom = 1.4 }: { minZoom?: number }) {
 
         {/* Cherry petals drift across the foreground */}
         <CherryPetals />
+
+        {/* Wandering chickens — world-positioned so they pan with camera */}
+        <ChickenSwarm />
 
         {/* Chief house marker — sits over the village in world coords */}
         <ChiefHouseMarker x={640} y={400} />
