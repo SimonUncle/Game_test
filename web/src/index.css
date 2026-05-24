@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    @apply h-full m-0 overflow-hidden;
+    font-family: "Noto Sans KR", system-ui, sans-serif;
+    background: #0a0e15;
+    color: #f7eccd;
+  }
+
+  body {
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button {
+    font-family: inherit;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    background: linear-gradient(
+      145deg,
+      rgba(18, 24, 34, 0.85) 0%,
+      rgba(10, 14, 22, 0.78) 100%
+    );
+    backdrop-filter: blur(8px) saturate(120%);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
+    border: 1px solid rgba(180, 160, 100, 0.18);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 230, 180, 0.06);
+  }
+
+  .glass-panel-strong {
+    background: linear-gradient(
+      145deg,
+      rgba(18, 24, 34, 0.95) 0%,
+      rgba(10, 14, 22, 0.92) 100%
+    );
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border: 1px solid rgba(180, 160, 100, 0.3);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(255, 230, 180, 0.1);
+  }
+
+  .pixel-text {
+    font-family: "Press Start 2P", monospace;
+    letter-spacing: 0.05em;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
+  }
+
+  .display-text {
+    font-family: "VT323", monospace;
+    letter-spacing: 0.04em;
+  }
+
+  .btn-ghost {
+    @apply uppercase text-sm tracking-wider text-cozy-cream/85
+      hover:text-cozy-accent transition-colors px-3 py-2;
+    font-weight: 500;
+  }
+
+  .btn-primary {
+    @apply bg-cozy-accent text-cozy-bg uppercase font-bold tracking-wider
+      px-4 py-2 rounded hover:bg-yellow-300 transition-colors text-sm;
+    box-shadow:
+      0 2px 0 rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* Day cycle color overlay — driven by inline CSS var --day-tint */
+.day-tint-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--day-tint, transparent);
+  mix-blend-mode: multiply;
+  transition: background 800ms ease;
+  z-index: 2;
+}
+
+/* Soft vignette for cozy feeling */
+.vignette::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 50%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+  z-index: 3;
+}
+
+/* Floating cherry petal */
+@keyframes petal-fall {
+  0% {
+    transform: translate(0, -10vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.7;
+  }
+  90% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate(40px, 110vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.petal {
+  position: absolute;
+  top: -20px;
+  width: 8px;
+  height: 8px;
+  border-radius: 60% 40% 60% 40%;
+  background: linear-gradient(135deg, #ffc8d8 0%, #ff97b3 100%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  animation: petal-fall linear infinite;
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* Pixel-perfect character image rendering */
+img.pixelated,
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
