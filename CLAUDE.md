@@ -201,6 +201,7 @@ claude mcp add godot -- npx @coding-solo/godot-mcp
 
 - 상세 작업 패턴: [`docs/CLAUDE_CODE_WORKFLOW.md`](docs/CLAUDE_CODE_WORKFLOW.md)
 - MCP/스킬 가이드: [`docs/MCP_AND_SKILLS.md`](docs/MCP_AND_SKILLS.md)
+- **웹앱 버전 가능성 검토**: [`docs/WEB_APP_ALTERNATIVE.md`](docs/WEB_APP_ALTERNATIVE.md)
 - 사용자용 실행 가이드: [`HOW_TO_RUN.md`](HOW_TO_RUN.md)
 - 프로젝트 소개: [`README.md`](README.md)
 
