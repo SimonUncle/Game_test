@@ -56,10 +56,28 @@ HOUSES = [
     chunk(12, 0, 4, 3),
 ]
 
-TREE_ROUND = chunk(4, 10, 2, 2)
-TREE_DARK  = chunk(8, 10, 2, 2)
-TREE_LEFT  = chunk(0, 10, 2, 2)
-TREE_PINE  = chunk(6, 10, 2, 2)
+def _strip_dirt_base_chunk(img: Image.Image) -> Image.Image:
+    """Same as _strip_dirt_base but inlined for the trees at module
+    load time (trees are defined before _strip_dirt_base in the file).
+    Red-dominant pixels are made transparent so the rectangular dirt
+    patch baked under each tree doesn't read on grass."""
+    out = img.copy().convert("RGBA")
+    px = out.load()
+    w, h = out.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a == 0:
+                continue
+            if r > 110 and g < 100 and b < 90 and (r - g) > 35:
+                px[x, y] = (0, 0, 0, 0)
+    return out
+
+
+TREE_ROUND = _strip_dirt_base_chunk(chunk(4, 10, 2, 2))
+TREE_DARK  = _strip_dirt_base_chunk(chunk(8, 10, 2, 2))
+TREE_LEFT  = _strip_dirt_base_chunk(chunk(0, 10, 2, 2))
+TREE_PINE  = _strip_dirt_base_chunk(chunk(6, 10, 2, 2))
 # Mix of "tree" sized things (2x2) — some entries duplicated to weight the mix.
 TREES_BIG = [TREE_ROUND, TREE_DARK, TREE_LEFT, TREE_PINE]
 # Mid-size: just the big bush — slots between trees to break the grid.
@@ -221,18 +239,13 @@ def main() -> None:
             base = grass_alt if in_patch and random.random() < 0.65 else grass
             bg.paste(random_flip(base), (tx * TILE, ty * TILE))
 
-    # 2) River on left + rocky bank where it meets grass.
+    # 2) River on left. Tried scattering pebble tiles along the bank,
+    # but tile (13,11) — which I labeled STONE_SM — is actually a
+    # brown wooden block and read as a row of brown rectangles next to
+    # the blue water. Removed until a real pebble tile is identified.
     for ty in range(rows):
         for tx in range(3):
             bg.paste(random_flip(water), (tx * TILE, ty * TILE))
-    # Pebbles scattered along the east bank (column 3 + occasional col 4)
-    for ty in range(rows):
-        if random.random() < 0.55:
-            stamp(bg, STONE_SM, 3 * TILE - random.randint(2, 6),
-                  ty * TILE + random.randint(0, 4))
-        if random.random() < 0.18:
-            stamp(bg, STONE_SM, 4 * TILE + random.randint(-2, 4),
-                  ty * TILE + random.randint(0, 4))
 
     # 3) Winding paths instead of a rigid cross.
     # Vertical path: center column cx with a slow sine deviation.
